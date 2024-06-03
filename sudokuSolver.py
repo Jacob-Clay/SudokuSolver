@@ -1,5 +1,6 @@
 import sys
 import bisect
+import re
 
 from PySide6.QtWidgets import (
     QApplication, 
@@ -28,7 +29,7 @@ from PySide6.QtCore import (
 )
 
 NUM_BOXES_X = 9
-NUM_BOXES_Y = 8
+NUM_BOXES_Y = 9
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -56,20 +57,52 @@ class MainWindow(QMainWindow):
             print("Dialog rejected")
     
     def receive_text(self, text):
-        if len(text) != 81:
-            print("invaled input, input must be of length 81")
+        if len(text) != 81 and len(text) != 162:
+            print("invaled input, input must be of length 81 or 162")
             return
-        
-        for cell in range(len(text)):
-            char = text[cell]
-            if char == "0" or char == ".":
-                continue         
-            i = cell % 9
-            j = cell // 9
+        if len(text) == 81:
+            for cell in range(len(text)):
+                char = text[cell]
+                if char == "0" or char == ".":
+                    continue         
+                i = cell % 9
+                j = cell // 9
 
-            self.central_widget.data[i][j] = {"given": True, "value": char}
+                self.central_widget.data[i][j] = {"given": True, "value": char}
+        else: # len(text) == 162
+            string_split = re.findall('.{1,2}', text)
+            for cell in range(len(string_split)):
+                n = int(string_split[cell], 32)
+                isClue = True if (n & 1) else False
+                n = n >> 1
+                i = cell % 9
+                j = cell // 9
+                if bin(n).count('1') == 1: # check if number of bits set in n is 1
+                    #save the number as a given
+                    set_bits = self.get_set_bits(n)
+                    print(f"Bits set to 1: {set_bits}")
+                    if not isClue:
+                        self.central_widget.data[i][j] = {"given": True, "value": f"{set_bits[0]}"}
+                    else:
+                        self.central_widget.data[i][j] = {"given": False, "value": f"{set_bits[0]}"}
+                else:   
+                    #save the number as a set of candidates
+                    set_bits = self.get_set_bits(n)
+                    print(f"Bits set to 1: {set_bits}")
+                    self.central_widget.data[i][j] = {"given": False, "centremarks": set_bits}
+
 
         self.central_widget.update()
+    
+    def get_set_bits(self, n):
+        set_bits = []
+        position = 1
+        while n > 0:
+            if n & 1:
+                set_bits.append(position)
+            n >>= 1
+            position += 1
+        return set_bits
     
 class InputDialog(QDialog):
     def __init__(self, parent=None) -> None:
@@ -126,9 +159,9 @@ class DrawWidget(QWidget):
                 [2, 3], [2, 4], [2, 5]
             ],
             [
-                [0, 6], [0, 7], #[0, 8],
-                [1, 6], [1, 7], #[1, 8],
-                [2, 6], [2, 7], #[2, 8]
+                [0, 6], [0, 7], [0, 8],
+                [1, 6], [1, 7], [1, 8],
+                [2, 6], [2, 7], [2, 8]
             ],
             [
                 [3, 0], [3, 1], [3, 2],
@@ -141,9 +174,9 @@ class DrawWidget(QWidget):
                 [5, 3], [5, 4], [5, 5]
             ],
             [
-                [3, 6], [3, 7], #[3, 8],
-                [4, 6], [4, 7], #[4, 8],
-                [5, 6], [5, 7], #[5, 8]
+                [3, 6], [3, 7], [3, 8],
+                [4, 6], [4, 7], [4, 8],
+                [5, 6], [5, 7], [5, 8]
             ],
             [
                 [6, 0], [6, 1], [6, 2],
@@ -156,9 +189,9 @@ class DrawWidget(QWidget):
                 [8, 3], [8, 4], [8, 5]
             ],
             [
-                [6, 6], [6, 7], #[6, 8],
-                [7, 6], [7, 7], #[7, 8],
-                [8, 6], [8, 7], #[8, 8]
+                [6, 6], [6, 7], [6, 8],
+                [7, 6], [7, 7], [7, 8],
+                [8, 6], [8, 7], [8, 8]
             ]
         ]
 
