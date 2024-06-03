@@ -1,12 +1,34 @@
 import sys
-import random
-# from PySide6 import QtCore, QtWidgets, QtGui
+import bisect
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout
-from PySide6.QtGui import QKeyEvent, QPainter, QPen, QFont, QScreen
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtWidgets import (
+    QApplication, 
+    QMainWindow, 
+    QWidget,
+    QWidgetAction, 
+    QMenu,
+    QDialog,
+    QVBoxLayout,
+    QLineEdit,
+    QPushButton,
+    QLabel
+)
+from PySide6.QtGui import (
+    QKeyEvent, 
+    QMouseEvent,
+    QPainter, 
+    QPen, 
+    QFont, 
+    QScreen,
+)
+from PySide6.QtCore import (
+    Qt, 
+    Slot,
+    QRect
+)
 
-NUM_BOXES = 9
+NUM_BOXES_X = 9
+NUM_BOXES_Y = 8
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -14,21 +36,131 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("TESTING!")
         self.setGeometry(100, 100, 550, 550)
-        # self.setGeometry(x, y, w, h)
 
-        central_widget = DrawWidget()
-        self.setCentralWidget(central_widget)
+        self.central_widget = DrawWidget(self)
+        self.setCentralWidget(self.central_widget) 
+
+        menu_bar = self.menuBar()
+        input_given_action = QWidgetAction(self)
+        input_given_action.setText("input givens")
+
+        input_given_action.triggered.connect(self.input_given)
+
+        menu_bar.addAction(input_given_action)
+
+    def input_given(self) -> None:
+        dialog = InputDialog(self)
+        if dialog.exec():
+            print("Dialog accepted")
+        else:
+            print("Dialog rejected")
+    
+    def receive_text(self, text):
+        if len(text) != 81:
+            print("invaled input, input must be of length 81")
+            return
+        
+        for cell in range(len(text)):
+            char = text[cell]
+            if char == "0" or char == ".":
+                continue         
+            i = cell % 9
+            j = cell // 9
+
+            self.central_widget.data[i][j] = {"given": True, "value": char}
+
+        self.central_widget.update()
+    
+class InputDialog(QDialog):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setWindowTitle("Input Dialog")
+        self.setGeometry(100, 100, 300, 100)
+
+        layout = QVBoxLayout()
+
+        self.label = QLabel("Enter in string representation of input:")
+        layout.addWidget(self.label)
+
+        self.text_input = QLineEdit(self)
+        layout.addWidget(self.text_input)
+
+        self.submit_button = QPushButton("Submit", self)
+        layout.addWidget(self.submit_button)
+
+        self.submit_button.clicked.connect(self.submit_text)
+
+        self.setLayout(layout)
+
+    def submit_text(self):
+        input_text = self.text_input.text()
+        if self.parent():
+            self.parent().receive_text(input_text)
+        self.accept()
+    
 
 
 class DrawWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.data = [["0" for _ in range(NUM_BOXES)] for _ in range(NUM_BOXES)]
-        self.numBoxes = NUM_BOXES
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.data = [[{} for _ in range(NUM_BOXES_Y)] for _ in range(NUM_BOXES_X)]
+        self.numBoxes_x = NUM_BOXES_X
+        self.numBoxes_y = NUM_BOXES_Y
         self.point = None
         self.square = None
+        self.clipboard = None
+        self.previous_geometry = None
 
         self.setFocusPolicy(Qt.StrongFocus)
+
+        self.regions = [
+            [
+                [0, 0], [0, 1], [0, 2],
+                [1, 0], [1, 1], [1, 2],
+                [2, 0], [2, 1], [2, 2]
+            ],
+            [
+                [0, 3], [0, 4], [0, 5],
+                [1, 3], [1, 4], [1, 5],
+                [2, 3], [2, 4], [2, 5]
+            ],
+            [
+                [0, 6], [0, 7], #[0, 8],
+                [1, 6], [1, 7], #[1, 8],
+                [2, 6], [2, 7], #[2, 8]
+            ],
+            [
+                [3, 0], [3, 1], [3, 2],
+                [4, 0], [4, 1], [4, 2],
+                [5, 0], [5, 1], [5, 2]
+            ],
+            [
+                [3, 3], [3, 4], [3, 5],
+                [4, 3], [4, 4], [4, 5],
+                [5, 3], [5, 4], [5, 5]
+            ],
+            [
+                [3, 6], [3, 7], #[3, 8],
+                [4, 6], [4, 7], #[4, 8],
+                [5, 6], [5, 7], #[5, 8]
+            ],
+            [
+                [6, 0], [6, 1], [6, 2],
+                [7, 0], [7, 1], [7, 2],
+                [8, 0], [8, 1], [8, 2]
+            ],
+            [
+                [6, 3], [6, 4], [6, 5],
+                [7, 3], [7, 4], [7, 5],
+                [8, 3], [8, 4], [8, 5]
+            ],
+            [
+                [6, 6], [6, 7], #[6, 8],
+                [7, 6], [7, 7], #[7, 8],
+                [8, 6], [8, 7], #[8, 8]
+            ]
+        ]
 
     def update_data(self, data):
         self.data = data
@@ -36,100 +168,216 @@ class DrawWidget(QWidget):
     
     def paintEvent(self, event):
         painter = QPainter(self)
-        pen = QPen(Qt.black, 4, Qt.SolidLine)
+        pen = QPen(Qt.black, 5, Qt.SolidLine)
         painter.setPen(pen)
 
         width = self.width()
         height = self.height()
         minimum_size = min(width, height)
-        # because we are drawing a square i can ignore differences in x and y
-        step = minimum_size / (self.numBoxes + 2)
-        minSide = step
-        maxSide = minSide + (self.numBoxes * step)
+        
+        step = minimum_size / (self.numBoxes_x + 2)
+        maxSide_x = step + (self.numBoxes_x * step)
+        maxSide_y = step + (self.numBoxes_y * step)
 
-        self.drawBoundaries(minSide, maxSide, step, painter, pen)
+        self.drawBoundaries(maxSide_x, maxSide_y, step, painter, pen)
 
-        self.drawText(minSide, maxSide, step, painter, pen)
+        self.drawText(maxSide_x, maxSide_y, step, painter, pen)
 
-        self.drawSelectedBox(minSide, maxSide, step, painter, pen)
+        self.drawSelectedBox(maxSide_x, maxSide_y, step, painter, pen)
+
+        self.checkDoubles(maxSide_x, maxSide_y, step, painter, pen)
         
         
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.LeftButton:
             pos = event.position()
             self.point = (pos.x(), pos.y())
-            self.update()
+            self.update() 
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         if self.square == None:
+            return
+        key_combo = event.keyCombination()
+        if key_combo.keyboardModifiers() != Qt.NoModifier and key_combo.keyboardModifiers() != Qt.KeypadModifier:
+            self.checkModified(event)
             return
         i = self.square[0]
         j = self.square[1]
-        if Qt.Key_0 <= event.key() <= Qt.Key_9:
-            self.data[i][j] = event.text()
-
-            self.update()
-        elif Qt.Key_Backspace == event.key() or event.key() == Qt.Key_Delete:
-            self.data[i][j] = "0"
-            self.update()
-        elif Qt.Key_Left == event.key():
-            self.square = (max(0, i-1), j)
-            self.update()
-        elif Qt.Key_Right == event.key() or Qt.Key_Tab == event.key():
-            self.square = (min(self.numBoxes, i+1), j)
-            self.update()
-        elif Qt.Key_Up == event.key():
-            self.square = (i, max(0, j-1))
-            self.update()
-        elif Qt.Key_Down == event.key() or Qt.Key_Return == event.key() or Qt.Key_Enter == event.key():
-            self.square = (i, min(self.numBoxes, j+1))
-            self.update()
-
-    def drawBoundaries(self, minSide, maxSide, step, painter, pen):
-        
-        painter.drawRect(minSide, minSide, maxSide - minSide, maxSide - minSide)
-
-        for i in range(1, self.numBoxes):
-            if (i == 3 or i == 6):
-                pen.setWidth(3)
-                painter.setPen(pen)
+        key = event.key()
+        if Qt.Key_0 <= key <= Qt.Key_9:
+            if self.data[i][j] == {} or self.data[i][j]["given"] == False:
+                self.data[i][j] = {"given": False, "value": self.keyToNum(key)}
+        elif Qt.Key_Backspace == key or key == Qt.Key_Delete:
+            self.data[i][j] = {}
+        elif Qt.Key_Left == key:
+            self.square = ((i - 1) % self.numBoxes_x, j)
+        elif Qt.Key_Right == key or Qt.Key_Tab == key:
+            self.square = ((i + 1) % self.numBoxes_x, j)
+        elif Qt.Key_Up == key:
+            self.square = (i, (j - 1) % self.numBoxes_y)
+        elif Qt.Key_Down == key or Qt.Key_Return == key or Qt.Key_Enter == key:
+            self.square = (i, (j + 1) % self.numBoxes_y)
+        elif Qt.Key_Escape == key:
+            self.square = None
+        elif Qt.Key_F11 == key: #specifically this one key has issues
+            if self.previous_geometry == None:
+                self.previous_geometry = self.parentWidget().geometry()
+                self.parentWidget().showMaximized()
             else:
-                pen.setWidth(2)
-                painter.setPen(pen)
-            painter.drawLine(minSide+(step*i), minSide, minSide+(step*i), maxSide)
-            painter.drawLine(minSide, minSide+(step*i), maxSide, minSide+(step*i))
+                current_geometry = self.parentWidget().geometry()
+                self.parentWidget().setGeometry(self.previous_geometry)
+                self.previous_geometry = current_geometry
+        self.update()
+    
+    def keyToNum(self, key: Qt.Key) -> str:
+        if Qt.Key_0 == key:
+            return "0"
+        if Qt.Key_1 == key:
+            return "1"
+        if Qt.Key_2 == key:
+            return "2"
+        if Qt.Key_3 == key:
+            return "3"
+        if Qt.Key_4 == key:
+            return "4"
+        if Qt.Key_5 == key:
+            return "5"
+        if Qt.Key_6 == key:
+            return "6"
+        if Qt.Key_7 == key:
+            return "7"
+        if Qt.Key_8 == key:
+            return "8"
+        if Qt.Key_9 == key:
+            return "9"
+        return ""
+
+    def checkModified(self, event: QKeyEvent) -> None:
+        key = event.key()
+        modifiers = event.modifiers()
+        i = self.square[0]
+        j = self.square[1]
+
+        if modifiers == Qt.ControlModifier or modifiers == Qt.ControlModifier|Qt.KeypadModifier:
+            if key == Qt.Key_C:
+                self.clipboard = self.data[self.square[0]][self.square[1]].copy()
+                if self.clipboard != {}:
+                    self.clipboard["given"] = False
+            if key == Qt.Key_V:
+                self.data[self.square[0]][self.square[1]] = self.clipboard
+                self.update() 
+            if Qt.Key_0 <= key <= Qt.Key_9:
+                cell = self.data[i][j]
+                if cell == {} or cell["given"] == False:
+                    num = self.keyToNum(key)
+                    if "centremarks" in cell:
+                        if num in cell["centremarks"]:
+                            self.data[i][j]["centremarks"].remove(num)
+                        else:
+                            position = bisect.bisect(cell["centremarks"], num)
+                            self.data[i][j]["centremarks"].insert(position, num)
+                    else:
+                        self.data[i][j] = {"given": False, "centremarks": [num]}
+                    self.update()
+        elif modifiers == Qt.ShiftModifier:
+            if key == Qt.Key_Backtab:
+                self.square = ((self.square[0] - 1) % self.numBoxes, self.square[1])
+                self.update()
 
 
-    def drawText(self, minSide, maxSide, step, painter, pen):
+    def drawBoundaries(self, maxSide_x, maxSide_y, step, painter: QPainter, pen: QPen):
+        
+        painter.drawRect(step, step, maxSide_x - step, maxSide_y - step)
+        pen.setWidth(2)
+        painter.setPen(pen)
+        # basic lines making the grid
+        for i in range(1, self.numBoxes_x):
+            painter.drawLine(step+(step*i), step, step+(step*i), maxSide_y)
+        for i in range(1, self.numBoxes_y):
+            painter.drawLine(step, step+(step*i), maxSide_x, step+(step*i))
+        
+        # painter.drawLine(x1, y1, x2, y2)
+
+        pen.setWidth(4)
+        painter.setPen(pen)
+
+        for region in self.regions:
+            seen_x = set()
+            seen_y = set()  
+            for cell in region:
+                if cell[0] not in seen_x:
+                    seen_x.add(cell[0])
+                if cell[1] not in seen_y:
+                    seen_y.add(cell[1])
+        
+            start_x = (min(seen_x) + 1) * step
+            start_y = (min(seen_y) + 1) * step
+            length_x = len(seen_x) * step
+            length_y = len(seen_y) * step
+
+            painter.drawRect(start_x, start_y, length_x, length_y)
+
+    def drawText(self, maxSide_x, maxSide_y, step, painter: QPainter, pen: QPen):
+        for i in range(len(self.data)):
+            for j in range(len(self.data[i])):
+                self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, i, j)
+                
+                
+
+    def draw_cell(self, maxSide_x, maxSide_y, step, painter: QPainter, pen: QPen, i, j, isDouble: bool = False):
+        cell = self.data[i][j]
+        if cell == {}:
+            return
         screen = self.window().windowHandle().screen()
         font_resolution = screen.logicalDotsPerInch()
-        font_size_in_dip = step / 1.25 # change this as desired
         font = QFont()
         font.setFamily("Arial")
         font.setWeight(QFont.Bold)
-        font.setPixelSize(int(font_size_in_dip * (font_resolution / 96.0)))
 
-        painter.setFont(font)
-        first_center = step + (step / 2)
-        # I want to write in the middle of the square so I am doing it like this
+        isGiven = cell["given"]
         
-        for i in range(len(self.data)):
-            for j in range(len(self.data[i])):
-                num = self.data[i][j]
-                if num == "0":
-                    continue
-                text_rect = painter.fontMetrics().boundingRectChar(num)
+        if isDouble:
+            pen.setColor(Qt.red)
+            painter.setPen(pen)
+        elif isGiven:
+            pen.setColor(Qt.black)
+            painter.setPen(pen)
+        else:
+            pen.setColor(Qt.blue)
+            painter.setPen(pen)
 
-                text_x = first_center - (text_rect.width() / 2) + (i * step)
-                text_y = first_center + (text_rect.height() / 2) + (j * step)
+        if isGiven or "centremarks" not in cell:
+            num = cell["value"]
+            font_size_in_dip = step / 1.25 # change this as desired   
+        elif "centremarks" in cell:
+            num = ""
+            for mark in cell["centremarks"]:
+                num += f"{mark} "
+            num = num[:-1] #remove the trailing space
+            if len(cell["centremarks"]) > 6:
+                font_size_in_dip = step / 3.75
+            else:
+                font_size_in_dip = step / 3
+                 
+        font.setPixelSize(int(font_size_in_dip * (font_resolution / 96.0)))
+        painter.setFont(font)  
 
-                painter.drawText(text_x, text_y, num)
+        cell_center_x = (i + 1.5) * step
+        cell_center_y = (j + 1.5) * step
+        buffer = step * .1
 
+        text_rect = QRect(
+            cell_center_x - (step / 2) + buffer,
+            cell_center_y - (step / 2) + buffer, 
+            step - (2 * buffer), 
+            step - (2 * buffer)
+        )
 
+        painter.drawText(text_rect, Qt.AlignCenter | Qt.TextWordWrap, num)
 
-    def drawSelectedBox(self, minSide, maxSide, step, painter, pen):
+    def drawSelectedBox(self, maxSide_x, maxSide_y, step, painter: QPainter, pen: QPen):
         if self.point != None:
-            if self.point[0] < minSide or self.point[1] < minSide or self.point[0] > maxSide or self.point[1] > maxSide:
+            if self.point[0] < step or self.point[1] < step or self.point[0] > maxSide_x or self.point[1] > maxSide_y:
                 self.point = None
                 self.square = None
             else:
@@ -137,18 +385,18 @@ class DrawWidget(QWidget):
                 point_y = self.point[1]
                 start_x = 0
                 start_y = 0
-                for i in range(1, self.numBoxes):
-                    if point_x < minSide + (i * step):
+                for i in range(1, self.numBoxes_x):
+                    if point_x < step + (i * step):
                         break
                     start_x = i
-                for i in range(1, self.numBoxes):
-                    if point_y < minSide + (i * step):
+                for i in range(1, self.numBoxes_y):
+                    if point_y < step + (i * step):
                         break
                     start_y = i
 
                 pen.setColor(Qt.red)
                 painter.setPen(pen)
-                painter.drawRect(minSide + (start_x * step), minSide + (start_y * step), step, step)
+                painter.drawRect(step + (start_x * step), step + (start_y * step), step, step)
                 self.point = None
                 self.square = (start_x, start_y)
         elif self.square != None:
@@ -156,7 +404,70 @@ class DrawWidget(QWidget):
             start_y = self.square[1]
             pen.setColor(Qt.red)
             painter.setPen(pen)
-            painter.drawRect(minSide + (start_x * step), minSide + (start_y * step), step, step)
+            painter.drawRect(step + (start_x * step), step + (start_y * step), step, step)
+
+    def checkDoubles(self, maxSide_x, maxSide_y, step, painter: QPainter, pen: QPen):
+        # check for vertical doubles
+        seen = set()
+        value_to_cell_dict = {}
+        for i in range(self.numBoxes_x):
+            for j in range(self.numBoxes_y):
+                cell = self.data[i][j]
+                if cell == {} or "value" not in cell:
+                    continue
+                cell_value = cell["value"]
+                if cell_value in seen:
+                    other_cell = value_to_cell_dict[cell_value]
+                    self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, i, j, True)
+                    self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, other_cell[0], other_cell[1], True)
+
+                else:
+                    seen.add(cell_value)
+                    value_to_cell_dict[cell_value] = (i, j)
+            seen.clear()
+            value_to_cell_dict.clear()
+
+        # check for horizontal doubles
+        seen.clear()
+        value_to_cell_dict.clear()
+        for j in range(self.numBoxes_y):
+            for i in range(self.numBoxes_x):
+                cell = self.data[i][j]
+                if cell == {} or "value" not in cell:
+                    continue
+                cell_value = cell["value"]
+                if cell_value in seen:
+                    other_cell = value_to_cell_dict[cell_value]
+                    self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, i, j, True)
+                    self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, other_cell[0], other_cell[1], True)
+
+                else:
+                    seen.add(cell_value)
+                    value_to_cell_dict[cell_value] = (i, j)
+            seen.clear()
+            value_to_cell_dict.clear()
+
+
+        # check regions    
+        for region in self.regions:
+            seen.clear()
+            value_to_cell_dict.clear()
+            for cords in region:
+                i = cords[0]
+                j = cords[1]
+                cell = self.data[i][j]
+                if cell == {} or "value" not in cell:
+                    continue
+                cell_value = cell["value"]
+                if cell_value in seen:
+                    other_cell = value_to_cell_dict[cell_value]
+                    self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, i, j, True)
+                    self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, other_cell[0], other_cell[1], True)
+                else:
+                    seen.add(cell_value)
+                    value_to_cell_dict[cell_value] = cords
+    
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -165,3 +476,4 @@ if __name__ == "__main__":
     window.show()
 
     sys.exit(app.exec())
+
