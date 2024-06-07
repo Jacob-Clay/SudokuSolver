@@ -80,7 +80,6 @@ class MainWindow(QMainWindow):
                 if bin(n).count('1') == 1: # check if number of bits set in n is 1
                     #save the number as a given
                     set_bits = self.get_set_bits(n)
-                    print(f"Bits set to 1: {set_bits}")
                     if not isClue:
                         self.central_widget.data[i][j] = {"given": True, "value": f"{set_bits[0]}"}
                     else:
@@ -88,7 +87,6 @@ class MainWindow(QMainWindow):
                 else:   
                     #save the number as a set of candidates
                     set_bits = self.get_set_bits(n)
-                    print(f"Bits set to 1: {set_bits}")
                     self.central_widget.data[i][j] = {"given": False, "centremarks": set_bits}
 
 
@@ -441,50 +439,49 @@ class DrawWidget(QWidget):
 
     def checkDoubles(self, maxSide_x, maxSide_y, step, painter: QPainter, pen: QPen):
         # check for vertical doubles
-        seen = set()
         value_to_cell_dict = {}
+        value_to_marks_dict = {}
         for i in range(self.numBoxes_x):
+            value_to_cell_dict.clear()
+            value_to_marks_dict.clear()
             for j in range(self.numBoxes_y):
                 cell = self.data[i][j]
                 if cell == {} or "value" not in cell:
-                    continue
+                    centremarks = cell["centremarks"]
+                    for value in centremarks:
+                        value_to_marks_dict[value].append(i, j)
+                        if value in value_to_cell_dict:
+                            pass
                 cell_value = cell["value"]
-                if cell_value in seen:
+                if cell_value in value_to_cell_dict:
                     other_cell = value_to_cell_dict[cell_value]
                     self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, i, j, True)
                     self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, other_cell[0], other_cell[1], True)
 
                 else:
-                    seen.add(cell_value)
                     value_to_cell_dict[cell_value] = (i, j)
-            seen.clear()
-            value_to_cell_dict.clear()
 
         # check for horizontal doubles
-        seen.clear()
-        value_to_cell_dict.clear()
         for j in range(self.numBoxes_y):
+            value_to_cell_dict.clear()
+            value_to_marks_dict.clear()
             for i in range(self.numBoxes_x):
                 cell = self.data[i][j]
                 if cell == {} or "value" not in cell:
                     continue
                 cell_value = cell["value"]
-                if cell_value in seen:
+                if cell_value in value_to_cell_dict:
                     other_cell = value_to_cell_dict[cell_value]
                     self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, i, j, True)
                     self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, other_cell[0], other_cell[1], True)
 
                 else:
-                    seen.add(cell_value)
                     value_to_cell_dict[cell_value] = (i, j)
-            seen.clear()
-            value_to_cell_dict.clear()
-
 
         # check regions    
         for region in self.regions:
-            seen.clear()
             value_to_cell_dict.clear()
+            value_to_marks_dict.clear()
             for cords in region:
                 i = cords[0]
                 j = cords[1]
@@ -492,12 +489,11 @@ class DrawWidget(QWidget):
                 if cell == {} or "value" not in cell:
                     continue
                 cell_value = cell["value"]
-                if cell_value in seen:
+                if cell_value in value_to_cell_dict:
                     other_cell = value_to_cell_dict[cell_value]
                     self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, i, j, True)
                     self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, other_cell[0], other_cell[1], True)
                 else:
-                    seen.add(cell_value)
                     value_to_cell_dict[cell_value] = cords
     
 
