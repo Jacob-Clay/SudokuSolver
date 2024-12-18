@@ -437,6 +437,11 @@ class DrawWidget(QWidget):
             painter.setPen(pen)
             painter.drawRect(step + (start_x * step), step + (start_y * step), step, step)
 
+
+    """
+    Actually start solving stuff rather than just drawing
+    """
+    
     def checkDoubles(self, maxSide_x, maxSide_y, step, painter: QPainter, pen: QPen):
         # check for vertical doubles
         value_to_cell_dict = {}
@@ -447,12 +452,20 @@ class DrawWidget(QWidget):
             for j in range(self.numBoxes_y):
                 cell = self.data[i][j]
                 if cell == {} or "value" not in cell:
-                    centremarks = cell["centremarks"]
+                    if "centremarks" in cell:
+                        centremarks = cell["centremarks"]
+                    else:
+                        centremarks = []
                     for value in centremarks:
-                        value_to_marks_dict[value].append(i, j)
+                        if value not in value_to_marks_dict:
+                            value_to_marks_dict[value] = []
+                        value_to_marks_dict[value].append((i, j))
                         if value in value_to_cell_dict:
                             pass
-                cell_value = cell["value"]
+                if "value" in cell:
+                    cell_value = cell["value"]
+                else:
+                    continue
                 if cell_value in value_to_cell_dict:
                     other_cell = value_to_cell_dict[cell_value]
                     self.draw_cell(maxSide_x, maxSide_y, step, painter, pen, i, j, True)
