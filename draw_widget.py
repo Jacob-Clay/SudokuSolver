@@ -28,6 +28,7 @@ class DrawWidget(QWidget):
         self.square = None
         self.clipboard = None
         self.previous_geometry = None
+        self.auto_clear = False
 
         self.setFocusPolicy(Qt.StrongFocus)
 
@@ -370,6 +371,10 @@ class DrawWidget(QWidget):
     """
     Actually start solving stuff rather than just drawing
     """
+
+    def auto_clear_centermarks(self):
+        self.auto_clear = not self.auto_clear
+
     def resetDoubles(self):
         for i in range(self.numBoxes_x):
             for j in range(self.numBoxes_y):
@@ -435,11 +440,20 @@ class DrawWidget(QWidget):
                 for centermark in cell["centermarks"]:
                     # check horizontal
                     if centermark in horizontal_value_to_cell_dict.get(i, {}):
-                        self.data[i][j]["double_centermarks"].append(centermark)
+                        if self.auto_clear:
+                            self.data[i][j]["centermarks"].remove(centermark)
+                        else:
+                            self.data[i][j]["double_centermarks"].append(centermark)
                     # check vertical
                     if centermark in vertical_value_to_cell_dict.get(j, {}):
-                        self.data[i][j]["double_centermarks"].append(centermark)
+                        if self.auto_clear:
+                            self.data[i][j]["centermarks"].remove(centermark)
+                        else:
+                            self.data[i][j]["double_centermarks"].append(centermark)
                     # check regions
                     region = (i // 3) * 3 + (j // 3)
                     if centermark in regionial_value_to_cell_dict.get(region, {}):
-                        self.data[i][j]["double_centermarks"].append(centermark)
+                        if self.auto_clear:
+                            self.data[i][j]["centermarks"].remove(centermark)
+                        else:
+                            self.data[i][j]["double_centermarks"].append(centermark)

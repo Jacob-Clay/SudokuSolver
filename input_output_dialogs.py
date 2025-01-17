@@ -34,11 +34,11 @@ class InputDialog(QDialog):
     def submit_text(self):
         input_text = self.text_input.text()
         if self.parent():
-            if len(input_text) == 81 or len(input_text) == 165:
+            if len(input_text) == 81 or len(input_text) == 162:
                 self.make_cells(input_text)
                 self.accept()
             else:
-                QMessageBox.information(self, "Invalid Input", "Invalid input, input must be of length 81 or 162")
+                QMessageBox.information(self, "Invalid Input", "Invalid input, input must be of length 81 or 162 imput was of length: " + str(len(input_text)))
 
 
     def make_cells(self, text):
@@ -52,7 +52,7 @@ class InputDialog(QDialog):
                 j = cell // 9
                 data[i][j] = {"given": True, "value": char}
 
-        else: # len(text) == 165
+        else: # len(text) == 162
             string_split = re.findall('.{1,2}', text) # split string into 2 character strings
             for cell in range(len(string_split)): # iterate over each cell (2 character string)
                 n = int(string_split[cell], 32) # convert 2 character string to int from base 32
@@ -72,7 +72,6 @@ class InputDialog(QDialog):
                     set_bits = self.get_set_bits(n)
                     data[i][j] = {"given": False, "centermarks": set_bits}
         self.parent().recieve_data(data)
-        # self.central_widget.update()
     
     def get_set_bits(self, n):
         set_bits = []
@@ -89,7 +88,7 @@ class InputDialog(QDialog):
 
 class OutputDialog(QDialog):
 
-    def __init__(self, parent=None, ) -> None:
+    def __init__(self, parent=None, data={}) -> None:
         super().__init__(parent)
 
         self.setWindowTitle("Output Dialog")
@@ -100,5 +99,24 @@ class OutputDialog(QDialog):
         self.label = QLabel("Output:")
         layout.addWidget(self.label)
 
+        self.make_cells_reverse(data)
+
         
-    
+    def make_cells_reverse(self, data):
+        text = ""
+        for i in range(9):  # Assuming a 9x9 Sudoku grid
+            for j in range(9):
+                cell = data[i][j]
+                if "value" in cell:
+                    value = int(cell["value"])
+                    isClue = cell["given"]
+                    n = (value << 1) | (1 if isClue else 0)  # Reconstruct integer from value and isClue
+                    text += f"{n:02x}"  # Convert to 2-character hex string
+                elif "centermarks" in cell:
+                    set_bits = cell["centermarks"]
+                    n = sum(1 << bit for bit in set_bits)  # Reconstruct integer from centermarks
+                    text += f"{n:02x}"  # Convert to 2-character hex string
+                else:
+                    text += "00"
+        print(text)
+        # return text
