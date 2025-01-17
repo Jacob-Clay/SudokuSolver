@@ -29,6 +29,7 @@ class DrawWidget(QWidget):
         self.clipboard = None
         self.previous_geometry = None
         self.auto_clear = False
+        self.autofill_centermarks = False
 
         self.setFocusPolicy(Qt.StrongFocus)
 
@@ -122,7 +123,7 @@ class DrawWidget(QWidget):
         j = self.square[1]
         key = event.key()
         if Qt.Key_0 <= key <= Qt.Key_9:
-            if self.data[i][j] == {} or self.data[i][j]["given"] == False:
+            if self.data[i][j] == {} or self.data[i][j].get("given", False) == False:
                 self.data[i][j] = {"given": False, "value": self.keyToNum(key)}
         elif Qt.Key_Backspace == key or key == Qt.Key_Delete:
             self.data[i][j] = {}
@@ -372,8 +373,14 @@ class DrawWidget(QWidget):
     Actually start solving stuff rather than just drawing
     """
 
+    def add_all_centermarks(self) -> None:
+        self.autofill_centermarks = True
+        self.auto_clear = True
+        self.update()
+
     def auto_clear_centermarks(self):
         self.auto_clear = not self.auto_clear
+        self.update()
 
     def resetDoubles(self):
         for i in range(self.numBoxes_x):
@@ -386,10 +393,15 @@ class DrawWidget(QWidget):
 
 
     def checkDoubles(self):
+        """
+        Checks for duplicate values in rows, columns, and regions, and marks them.
+        Also checks for duplicate centermarks and handles autofill and autoclear options.
+        """
+        # Reset all double flags and double centermarks before checking for new doubles
         self.resetDoubles()
         horizontal_value_to_cell_dict = {}
         vertical_value_to_cell_dict = {}
-        regionial_value_to_cell_dict = {}
+        regional_value_to_cell_dict = {}
 
         for i in range(self.numBoxes_x):
             for j in range(self.numBoxes_y):
@@ -402,7 +414,7 @@ class DrawWidget(QWidget):
                 # check horizontal
                 if i not in horizontal_value_to_cell_dict:
                     horizontal_value_to_cell_dict[i] = {}
-                if cell_value in horizontal_value_to_cell_dict.get(i, {}):
+                if cell_value in horizontal_value_to_cell_dict[i]:
                     other_cell = horizontal_value_to_cell_dict[i][cell_value]
                     self.data[i][j]["double"] = True
                     self.data[other_cell[0]][other_cell[1]]["double"] = True
@@ -412,7 +424,7 @@ class DrawWidget(QWidget):
                 # check vertical
                 if j not in vertical_value_to_cell_dict:
                     vertical_value_to_cell_dict[j] = {}
-                if cell_value in vertical_value_to_cell_dict.get(j, {}):
+                if cell_value in vertical_value_to_cell_dict[j]:
                     other_cell = vertical_value_to_cell_dict[j][cell_value]
                     self.data[i][j]["double"] = True
                     self.data[other_cell[0]][other_cell[1]]["double"] = True
@@ -421,39 +433,51 @@ class DrawWidget(QWidget):
 
                 # check regions
                 region = (i // 3) * 3 + (j // 3)
-                if region not in regionial_value_to_cell_dict:
-                    regionial_value_to_cell_dict[region] = {}
-                if cell_value in regionial_value_to_cell_dict.get(region, {}):
-                    other_cell = regionial_value_to_cell_dict[region][cell_value]
+                if region not in regional_value_to_cell_dict:
+                    regional_value_to_cell_dict[region] = {}
+                if cell_value in regional_value_to_cell_dict[region]:
+                    other_cell = regional_value_to_cell_dict[region][cell_value]
                     self.data[i][j]["double"] = True
                     self.data[other_cell[0]][other_cell[1]]["double"] = True
                 else:
-                    regionial_value_to_cell_dict[region][cell_value] = (i, j)
+                    regional_value_to_cell_dict[region][cell_value] = (i, j)
 
         ## check for doubles in centermarks
         for i in range(self.numBoxes_x):
             for j in range(self.numBoxes_y):
                 cell = self.data[i][j]
+
+                if self.autofill_centermarks:
+                    if "value" in cell:
+                        continue
+                    cell["centermarks"] = [str(x) for x in range(1, 10)]
+
                 if "centermarks" not in cell:
                     continue
 
+                to_remove = set()
                 for centermark in cell["centermarks"]:
                     # check horizontal
                     if centermark in horizontal_value_to_cell_dict.get(i, {}):
                         if self.auto_clear:
-                            self.data[i][j]["centermarks"].remove(centermark)
+                            to_remove.add(centermark)
                         else:
                             self.data[i][j]["double_centermarks"].append(centermark)
                     # check vertical
                     if centermark in vertical_value_to_cell_dict.get(j, {}):
                         if self.auto_clear:
-                            self.data[i][j]["centermarks"].remove(centermark)
+                            to_remove.add(centermark)
                         else:
                             self.data[i][j]["double_centermarks"].append(centermark)
                     # check regions
                     region = (i // 3) * 3 + (j // 3)
-                    if centermark in regionial_value_to_cell_dict.get(region, {}):
+                    if centermark in regional_value_to_cell_dict.get(region, {}):
                         if self.auto_clear:
-                            self.data[i][j]["centermarks"].remove(centermark)
+                            to_remove.add(centermark)
                         else:
                             self.data[i][j]["double_centermarks"].append(centermark)
+                    
+                for mark in to_remove:
+                    self.data[i][j]["centermarks"].remove(mark)
+
+        self.autofill_centermarks = False

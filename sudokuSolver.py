@@ -20,23 +20,27 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget) 
 
         menu_bar = self.menuBar()
+
         input_given_action = QWidgetAction(self)
         input_given_action.setText("input givens")
+        input_given_action.triggered.connect(self.input_given)
+        menu_bar.addAction(input_given_action)
+
         output_action = QWidgetAction(self)
         output_action.setText("output board")
-
-        input_given_action.triggered.connect(self.input_given)
         output_action.triggered.connect(self.output_board)
-
-        menu_bar.addAction(input_given_action)
         menu_bar.addAction(output_action)
 
         auto_clear_centermarks_action = QWidgetAction(self)
         auto_clear_centermarks_action.setText("auto clear centermarks")
-        auto_clear_centermarks_action.setCheckable(True)
-        auto_clear_centermarks_action.setChecked(False)
-        menu_bar.addAction(auto_clear_centermarks_action)
         auto_clear_centermarks_action.triggered.connect(self.central_widget.auto_clear_centermarks)
+        menu_bar.addAction(auto_clear_centermarks_action)
+
+        add_all_centermarks_action = QWidgetAction(self)
+        add_all_centermarks_action.setText("add all centermarks")
+        add_all_centermarks_action.triggered.connect(self.central_widget.add_all_centermarks)
+        menu_bar.addAction(add_all_centermarks_action)
+
 
     def input_given(self) -> None:
         dialog = InputDialog(self)
