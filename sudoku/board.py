@@ -1,4 +1,4 @@
-from sudoku.grid import Grid, Unit, UnitType
+from sudoku.grid import Coordinate, Grid, Unit, UnitType
 from dataclasses import dataclass, field
 
 
@@ -46,16 +46,33 @@ class Board:
         if regions:
             self.grid = Grid(n_rows=9, n_cols=9, regions=regions)
         else:
-            regions = []
-            region_id = 1
+            self.grid = Grid(n_rows=9, n_cols=9, regions=self.create_standard_grid())
 
-            for box_row in range(3):
-                for box_col in range(3):
-                    cells_in_region = set()
-                    for row in range(box_row * 3, box_row * 3 + 3):
-                        for col in range(box_col * 3, box_col * 3 + 3):
-                            cells_in_region.add((row, col))
-                    regions.append(Unit(cells_in_region, region_id, UnitType.REGION))
-                    region_id += 1
+        self.cells: dict[Coordinate, Cell] = {}
 
-            self.grid = Grid(n_rows=9, n_cols=9, regions=regions)
+        for row in range(9):
+            for col in range(9):
+                self.cells[(row, col)] = Cell()
+
+    def create_standard_grid(self) -> list[Unit]:
+        regions = []
+        region_id = 0
+
+        for box_row in range(3):
+            for box_col in range(3):
+                cells_in_region = set()
+                for row in range(box_row * 3, box_row * 3 + 3):
+                    for col in range(box_col * 3, box_col * 3 + 3):
+                        cells_in_region.add((row, col))
+                regions.append(Unit(cells_in_region, region_id, UnitType.REGION))
+                region_id += 1
+
+        return regions
+
+    def get_cell_value(self, row: int, col: int):
+        if row < 0 or row > 8:
+            raise IndexError("Row must be 0-8")
+        if col < 0 or col > 8:
+            raise IndexError("Col must be 0-8")
+
+        return self.cells[(row, col)].value

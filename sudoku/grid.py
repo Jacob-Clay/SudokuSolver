@@ -14,9 +14,9 @@ class UnitType(Enum):
 
 @dataclass
 class Unit:
-    cell_cords: set[Coordinate]
-    unit_id: int
-    unit_type: UnitType
+    cords: set[Coordinate]
+    id: int
+    type: UnitType
 
     def contains(self, row: int, col: int) -> bool:
         """Check if this unit contains a cell.
@@ -28,7 +28,10 @@ class Unit:
         Returns:
             True if in region, else False
         """
-        return (row, col) in self.cell_cords
+        return (row, col) in self.cords
+
+    def __repr__(self) -> str:
+        return f"Unit(cords={self.cords}, id={self.id}, type={self.type})"
 
 
 @dataclass
@@ -47,7 +50,7 @@ class Grid:
     )
 
     def __post_init__(self):
-        unit_id = 1
+        unit_id = 0
         for col in range(self.n_cols):
             cells = {(row, col) for row in range(self.n_rows)}
             new_unit = Unit(cells, unit_id, UnitType.COLUMN)
@@ -55,7 +58,7 @@ class Grid:
             self.units.append(new_unit)
             unit_id += 1
 
-        unit_id = 1
+        unit_id = 0
         for row in range(self.n_rows):
             cells = {(row, col) for col in range(self.n_cols)}
             new_unit = Unit(cells, unit_id, UnitType.ROW)
@@ -79,7 +82,7 @@ class Grid:
             for col in range(self.n_cols):
                 self.cell_to_peers[(row, col)] = set()
                 for unit in self.cell_to_units[(row, col)]:
-                    self.cell_to_peers[(row, col)].update(unit.cell_cords)
+                    self.cell_to_peers[(row, col)].update(unit.cords)
                 self.cell_to_peers[(row, col)].discard((row, col))
 
     def get_units_for_cell(self, row: int, col: int) -> list[Unit]:
