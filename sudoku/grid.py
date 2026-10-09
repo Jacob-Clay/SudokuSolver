@@ -30,9 +30,6 @@ class Unit:
         """
         return (row, col) in self.cords
 
-    def __repr__(self) -> str:
-        return f"Unit(cords={self.cords}, id={self.id}, type={self.type})"
-
 
 @dataclass
 class Grid:
@@ -50,21 +47,17 @@ class Grid:
     )
 
     def __post_init__(self):
-        unit_id = 0
         for col in range(self.n_cols):
             cells = {(row, col) for row in range(self.n_rows)}
-            new_unit = Unit(cells, unit_id, UnitType.COLUMN)
+            new_unit = Unit(cells, col, UnitType.COLUMN)
             self.columns.append(new_unit)
             self.units.append(new_unit)
-            unit_id += 1
 
-        unit_id = 0
         for row in range(self.n_rows):
             cells = {(row, col) for col in range(self.n_cols)}
-            new_unit = Unit(cells, unit_id, UnitType.ROW)
+            new_unit = Unit(cells, row, UnitType.ROW)
             self.rows.append(new_unit)
             self.units.append(new_unit)
-            unit_id += 1
 
         for region in self.regions:
             self.units.append(region)
