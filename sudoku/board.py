@@ -1,5 +1,6 @@
 from sudoku.grid import Coordinate, Grid, Unit, UnitType
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass, field
 
 
@@ -88,7 +89,7 @@ class Board:
         cell.value = None
         cell.candidates = set()
 
-    def add_cell_candidate(self, row: int, col: int, value: int) -> None:
+    def toggle_cell_candidate(self, row: int, col: int, value: int) -> None:
         if not self._is_valid_coordinate(row, col):
             raise IndexError("Invalid cell coordinate")
 
@@ -97,12 +98,20 @@ class Board:
             raise ValueError("Cell is given and therefore can't be changed")
         if cell.is_solved():
             raise ValueError("Cell is solved and therefore can't have candidates")
+        if value < 1 or value > 9:
+            raise ValueError("Candidate value must be 1-9")
 
-        cell.candidates.add(value)
+        if value in cell.candidates:
+            cell.candidates.discard(value)
+        else:
+            cell.candidates.add(value)
 
     def set_given(self, row: int, col: int, value: int) -> None:
         if not self._is_valid_coordinate(row, col):
             raise IndexError("Invalid cell coordinate")
+
+        if value < 1 or value > 9:
+            raise ValueError("Cell value must be 1-9")
 
         cell = self.cells[(row, col)]
         cell.value = value
@@ -135,6 +144,12 @@ class Board:
 
     def is_solved(self) -> bool:
         return self.is_complete() and len(self.get_conflicts()) == 0
+
+    def copy(self) -> Board:
+        new_board = Board(deepcopy(self.grid.regions))
+        new_board.cells = deepcopy(self.cells)
+
+        return new_board
 
     def __str__(self) -> str:
         s = ""
