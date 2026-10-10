@@ -14,7 +14,7 @@ class UnitType(Enum):
 
 @dataclass
 class Unit:
-    cords: set[Coordinate]
+    coords: set[Coordinate]
     id: int
     type: UnitType
 
@@ -28,7 +28,7 @@ class Unit:
         Returns:
             True if in region, else False
         """
-        return (row, col) in self.cords
+        return (row, col) in self.coords
 
 
 @dataclass
@@ -75,7 +75,7 @@ class Grid:
             for col in range(self.n_cols):
                 self.cell_to_peers[(row, col)] = set()
                 for unit in self.cell_to_units[(row, col)]:
-                    self.cell_to_peers[(row, col)].update(unit.cords)
+                    self.cell_to_peers[(row, col)].update(unit.coords)
                 self.cell_to_peers[(row, col)].discard((row, col))
 
     def get_units_for_cell(self, row: int, col: int) -> list[Unit]:

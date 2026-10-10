@@ -4,11 +4,11 @@ import pytest
 
 @pytest.fixture
 def unit_setup():
-    cords = {(1, 1), (1, 2), (1, 3)}
+    coords = {(1, 1), (1, 2), (1, 3)}
     id = 1
     unit_type = UnitType.COLUMN
 
-    return Unit(cords, id, unit_type)
+    return Unit(coords, id, unit_type)
 
 
 class TestUnit:
@@ -16,7 +16,7 @@ class TestUnit:
         unit: Unit = unit_setup
         assert unit.type == UnitType.COLUMN
         assert unit.id == 1
-        assert unit.cords == {(1, 1), (1, 2), (1, 3)}
+        assert unit.coords == {(1, 1), (1, 2), (1, 3)}
 
     def test_cell_in_unit(self, unit_setup):
         unit = unit_setup

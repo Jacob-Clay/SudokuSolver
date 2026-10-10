@@ -128,17 +128,17 @@ class Board:
     def get_conflicts(self) -> set[Coordinate]:
         conflicts: set[Coordinate] = set()
         for unit in self.grid.units:
-            value_to_cords: dict[int, set[Coordinate]] = defaultdict(set)
-            for coord in unit.cords:
+            value_to_coords: dict[int, set[Coordinate]] = defaultdict(set)
+            for coord in unit.coords:
                 value = self.cells[coord].value
                 if value is None:
                     continue
-                value_to_cords[value].add(coord)
+                value_to_coords[value].add(coord)
 
-            for value, cords in value_to_cords.items():
-                if len(cords) <= 1:
+            for value, coords in value_to_coords.items():
+                if len(coords) <= 1:
                     continue
-                conflicts.update(cords)
+                conflicts.update(coords)
 
         return conflicts
 
