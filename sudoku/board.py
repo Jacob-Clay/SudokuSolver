@@ -158,3 +158,15 @@ class Board:
                 s += f"{self.cells[(i, j)]} "
             s += "\n"
         return s
+
+    def import_string(self, input_str: str) -> None:
+        if len(input_str) != 81:
+            raise ValueError("input string needs to be 81 char long")
+
+        for index, char in enumerate(input_str):
+            row = index // 9
+            col = index % 9
+            if char.isnumeric():
+                if char == "0":
+                    continue
+                self.set_given(row, col, int(char))

@@ -63,6 +63,18 @@ class TestBoard:
         assert board1.get_cell_value(0, 0) == 1
         assert board2.get_cell_value(0, 0) is None
 
+    def test_board_input(self):
+        board: Board = Board()
+        import_val = "500000000000000000000000000000000000000000005000000000050000000000000500000000005"
+
+        board.import_string(import_val)
+        assert board.get_cell_value(0, 0) == 5
+        assert board.get_cell_value(0, 1) is None
+        assert board.get_cell_value(4, 8) == 5
+        assert board.get_cell_value(6, 1) == 5
+        assert board.get_cell_value(7, 6) == 5
+        assert board.get_cell_value(8, 8) == 5
+
 
 @pytest.mark.parametrize(
     "row, col",
