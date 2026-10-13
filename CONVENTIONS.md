@@ -55,7 +55,7 @@ Rules this codebase follows. If code and this file disagree, one of them is wron
 
 - Classes are `CapitalizedNames`, functions and variables are `snake_case`.
 - Compare with `None` using `is` / `is not`.
-- Requires Python 3.12+ (for the `type` statement).
+- Requires Python 3.14+ (for the `type` statement).
 
 ## Tests
 
