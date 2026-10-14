@@ -15,7 +15,7 @@ Rules this codebase follows. If code and this file disagree, one of them is wron
 - An empty cell has `value = None`. `0` is never stored as a value.
 - Candidates are a `set[int]`. An empty set means "no candidates recorded".
 - Centre marks entered by the player are treated as candidates.
-- **TODO — decide:** when a value is placed in a cell, are its candidates cleared or kept?
+- candidates are cleared when a cell has a value
 
 ## Givens
 
@@ -55,7 +55,7 @@ Rules this codebase follows. If code and this file disagree, one of them is wron
 
 - Classes are `CapitalizedNames`, functions and variables are `snake_case`.
 - Compare with `None` using `is` / `is not`.
-- Requires Python 3.14+ (for the `type` statement).
+- Requires Python 3.14+.
 
 ## Tests
 

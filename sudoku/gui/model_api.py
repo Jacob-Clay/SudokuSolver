@@ -61,9 +61,7 @@ def region_lookup(board: Board) -> dict[Coordinate, int]:
 def board_from_string(text: str) -> Board:
     """New board from an 81-character string. Raises ValueError on bad input."""
     text = "".join(text.split())  # tolerate spaces and line breaks when pasting
-    board = new_board()
-    board.import_string(text)
-    return board
+    return Board.from_string(text)
 
 
 def board_to_string(board: Board) -> str:

@@ -1,12 +1,12 @@
-from sudoku.grid import Grid, Unit, UnitType
+from sudoku.grid import Coordinate, Grid, Unit, UnitType
 import pytest
 
 
 @pytest.fixture
 def unit_setup():
-    coords = {(1, 1), (1, 2), (1, 3)}
-    id = 1
-    unit_type = UnitType.COLUMN
+    coords: set[Coordinate] = {(1, 1), (1, 2), (1, 3)}
+    id: int = 1
+    unit_type: UnitType = UnitType.COLUMN
 
     return Unit(coords, id, unit_type)
 
@@ -19,13 +19,13 @@ class TestUnit:
         assert unit.coords == {(1, 1), (1, 2), (1, 3)}
 
     def test_cell_in_unit(self, unit_setup):
-        unit = unit_setup
+        unit: Unit = unit_setup
         assert unit.contains(1, 1)
         assert unit.contains(1, 2)
         assert unit.contains(1, 3)
 
     def test_cell_not_in_unit(self, unit_setup):
-        unit = unit_setup
+        unit: Unit = unit_setup
         assert not unit.contains(2, 1)
         assert not unit.contains(3, 1)
         assert not unit.contains(2, 2)
@@ -33,10 +33,10 @@ class TestUnit:
 
 @pytest.fixture
 def grid_setup():
-    num_rows = 9
-    num_cols = 9
-    regions = []
-    region_id = 0
+    num_rows: int = 9
+    num_cols: int = 9
+    regions: list[Unit] = []
+    region_id: int = 0
 
     for box_row in range(3):
         for box_col in range(3):
@@ -126,3 +126,43 @@ class TestGrid:
             assert unit.type == UnitType.COLUMN
 
         assert len(grid.columns) == 9
+
+    def test_invalid_n_cols(self):
+        regions: list[Unit] = [Unit(set(), 0, UnitType.REGION)]
+        n_cols: int = 0
+        n_rows: int = 1
+        with pytest.raises(ValueError):
+            Grid(n_rows, n_cols, regions)
+
+    def test_invalid_n_rows(self):
+        regions: list[Unit] = [Unit(set(), 0, UnitType.REGION)]
+        n_cols: int = 1
+        n_rows: int = 0
+        with pytest.raises(ValueError):
+            Grid(n_rows, n_cols, regions)
+
+    def test_invalid_regions_cell_without_region(self):
+        regions: list[Unit] = [Unit({(0, 0), (0, 1), (1, 0)}, 0, UnitType.REGION)]
+        n_cols: int = 2
+        n_rows: int = 2
+        with pytest.raises(ValueError):
+            Grid(n_rows, n_cols, regions)
+
+    def test_invalid_regions_cell_with_multiple_regions(self):
+        regions: list[Unit] = [
+            Unit({(0, 0), (0, 1), (1, 0), (0, 1)}, 0, UnitType.REGION),
+            Unit({(0, 0)}, 1, UnitType.REGION),
+        ]
+        n_cols: int = 2
+        n_rows: int = 2
+        with pytest.raises(ValueError):
+            Grid(n_rows, n_cols, regions)
+
+    def test_invalid_regions_wrong_type(self):
+        regions: list[Unit] = [
+            Unit({(0, 0), (0, 1), (1, 0), (1, 1)}, 0, UnitType.COLUMN)
+        ]
+        n_cols: int = 2
+        n_rows: int = 2
+        with pytest.raises(ValueError):
+            Grid(n_rows, n_cols, regions)

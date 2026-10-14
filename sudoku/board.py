@@ -31,9 +31,19 @@ class Cell:
 class Board:
     def __init__(self, regions: list[Unit] | None = None) -> None:
         if regions:
-            self.grid = Grid(n_rows=9, n_cols=9, regions=regions)
+            n_rows: int = 0
+            n_cols: int = 0
+            combined_sets_of_coords: set[Coordinate] = set().union(
+                *(c.coords for c in regions)
+            )
+            n_rows, n_cols = map(max, zip(*combined_sets_of_coords))
+
+            n_rows += 1  # coords is 0 indexed
+            n_cols += 1  # coords is 0 indexed
+
+            self.grid = Grid(n_rows=n_rows, n_cols=n_cols, regions=regions)
         else:
-            self.grid = Grid(n_rows=9, n_cols=9, regions=self.create_standard_grid())
+            self.grid = Grid(n_rows=9, n_cols=9, regions=self._create_standard_grid())
 
         self.cells: dict[Coordinate, Cell] = {}
 
@@ -41,7 +51,7 @@ class Board:
             for col in range(9):
                 self.cells[(row, col)] = Cell()
 
-    def create_standard_grid(self) -> list[Unit]:
+    def _create_standard_grid(self) -> list[Unit]:
         regions = []
         region_id = 0
 
@@ -146,7 +156,7 @@ class Board:
         return self.is_complete() and len(self.get_conflicts()) == 0
 
     def copy(self) -> Board:
-        new_board = Board(deepcopy(self.grid.regions))
+        new_board = Board(self.grid.regions)
         new_board.cells = deepcopy(self.cells)
 
         return new_board
@@ -159,14 +169,21 @@ class Board:
             s += "\n"
         return s
 
-    def import_string(self, input_str: str) -> None:
+    @classmethod
+    def from_string(cls, input_str: str, regions: list[Unit] | None = None) -> Board:
         if len(input_str) != 81:
             raise ValueError("input string needs to be 81 char long")
+
+        board: Board = cls(regions=regions)
 
         for index, char in enumerate(input_str):
             row = index // 9
             col = index % 9
-            if char.isnumeric():
+            if char.isdigit():
                 if char == "0":
                     continue
-                self.set_given(row, col, int(char))
+                board.set_given(row, col, int(char))
+            elif char not in "*_.":
+                raise ValueError("input string contains non valid character")
+
+        return board

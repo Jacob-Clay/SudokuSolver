@@ -55,6 +55,15 @@ class TestBoard:
         board.toggle_cell_candidate(0, 0, 1)
         assert 1 not in board.cells[(0, 0)].candidates
 
+    def test_cell_candidates_clear_upon_setting_value(self):
+        board: Board = Board()
+
+        board.toggle_cell_candidate(0, 0, 1)
+        assert 1 in board.cells[(0, 0)].candidates
+        board.set_cell_value(0, 0, 3)
+        assert board.get_cell_value(0, 0) == 3
+        assert 1 not in board.cells[(0, 0)].candidates
+
     def test_board_copy(self):
         board1: Board = Board()
         board2: Board = board1.copy()
@@ -64,16 +73,28 @@ class TestBoard:
         assert board2.get_cell_value(0, 0) is None
 
     def test_board_input(self):
-        board: Board = Board()
         import_val = "500000000000000000000000000000000000000000005000000000050000000000000500000000005"
 
-        board.import_string(import_val)
+        board: Board = Board.from_string(import_val)
         assert board.get_cell_value(0, 0) == 5
         assert board.get_cell_value(0, 1) is None
         assert board.get_cell_value(4, 8) == 5
         assert board.get_cell_value(6, 1) == 5
         assert board.get_cell_value(7, 6) == 5
         assert board.get_cell_value(8, 8) == 5
+
+    def test_board_is_complete(self):
+        import_val = "555555555555555555555555555555555555555555555555555555555555555555555555555555555"
+
+        board: Board = Board.from_string(import_val)
+        assert board.is_complete()
+        assert not board.is_solved()
+
+    def test_board_is_solved(self):
+        import_val = "913568427687342915254197683479685132162734598538219764345926871726851349891473256"
+
+        board: Board = Board.from_string(import_val)
+        assert board.is_solved()
 
 
 @pytest.mark.parametrize(
