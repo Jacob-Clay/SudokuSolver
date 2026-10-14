@@ -74,12 +74,13 @@ class Grid:
         units.extend(self.regions)
 
         # check if regions are valid
+        for region in self.regions:
+            if region.type != UnitType.REGION:
+                raise ValueError("non valid regions. must be of REGION type")
         for row in range(self.n_rows):
             for col in range(self.n_cols):
                 n_regions_containing_cell: int = 0
                 for region in self.regions:
-                    if region.type != UnitType.REGION:
-                        raise ValueError("non valid regions. must be of REGION type")
                     if (row, col) in region.coords:
                         n_regions_containing_cell += 1
                 if n_regions_containing_cell != 1:
