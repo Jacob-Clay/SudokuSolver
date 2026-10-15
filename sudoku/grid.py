@@ -1,4 +1,10 @@
-"""All needed dataclasses for a grid of cells including their regions."""
+"""Dataclasses for representing a grid with cells organized into rows, columns, and regions.
+
+This module provides the core data structures for representing
+contraint-satisfaction grids (sudoku puzzles). Each cell belongs to exactly one
+row, one column, and one region. Cells in the same unit (row, column, or region)
+are considered peers.
+"""
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -7,6 +13,14 @@ type Coordinate = tuple[int, int]
 
 
 class UnitType(Enum):
+    """Enumeration of the three types of units in a grid.
+
+    Attributes:
+        ROW: A horizontal line of cells spanning all columns.
+        COLUMN: A vertical line of cells spanning all rows.
+        REGION: A custom grouping of cells (e.g., a 3x3 box in standard Sudoku).
+    """
+
     ROW = "row"
     COLUMN = "column"
     REGION = "region"
@@ -14,6 +28,16 @@ class UnitType(Enum):
 
 @dataclass(frozen=True)
 class Unit:
+    """A collection of cells that form a logical unit.
+
+    A unit is an immutable group of cells that must satisfy some constraint
+
+    Attributes:
+        coords: The set of cell coordinates in this unit.
+        id: A unique identifier for this unit within its type.
+        type: The type of unit (ROW, COLUMN, or REGION).
+    """
+
     coords: frozenset[Coordinate]
     id: int
     type: UnitType
@@ -33,21 +57,49 @@ class Unit:
 
 @dataclass(frozen=True)
 class Grid:
+    """A grid with cells organized into rows, columns, and regions.
+
+    A grid precomputes the structure of rows, columns, regions, and peer
+    relationships to enable efficient constraint satisfaction solving. All cells
+    must be covered by exactly one region.
+
+    Attributes:
+        n_rows: The number of rows in the grid. Must be positive
+        n_cols: The number of columns in the grid. Must be positive
+        regions: A list of regions partitioning the grid. Must cover all cells
+        exactly once.
+        columns: All column units, indexed by column number (derived).
+        rows: All row units, indexed by row number (derived).
+        units: All units (rows, columns, and regions combined) (derived).
+        cell_to_peers: Mapping from each cell to its three units (row, column,
+        region) (derived).
+        cell_to_units: Mapping from each cell to all peer cells (derived).
+
+    Raises:
+        ValueError: if n_rows or n_cols is non-positive, if regions don't
+        partition the grid, or if any region is not of type REGION.
+    """
+
     n_rows: int
     n_cols: int
     regions: list[Unit]
-    columns: list[Unit] = field(init=False, default_factory=list)
-    rows: list[Unit] = field(init=False, default_factory=list)
-    units: list[Unit] = field(init=False, default_factory=list)
+    columns: list[Unit] = field(init=False, default_factory=list[Unit])
+    rows: list[Unit] = field(init=False, default_factory=list[Unit])
+    units: list[Unit] = field(init=False, default_factory=list[Unit])
     cell_to_peers: dict[Coordinate, set[Coordinate]] = field(
-        init=False, default_factory=dict
+        init=False, default_factory=dict[Coordinate, set[Coordinate]]
     )
     cell_to_units: dict[Coordinate, list[Unit]] = field(
-        init=False, default_factory=dict
+        init=False, default_factory=dict[Coordinate, list[Unit]]
     )
 
     def __post_init__(self) -> None:
+        """Validate the grid and precompute derived structures.
 
+        Raises:
+            ValueError: If grid dimensions are invalid, regions don't
+            partition the grid, or if any region is not of type REGION.
+        """
         # check if n_rows and n_cols are valid
         if self.n_rows <= 0 or self.n_cols <= 0:
             raise ValueError("n_rows and n_cols must be positive")
@@ -112,7 +164,26 @@ class Grid:
         object.__setattr__(self, "cell_to_peers", cell_to_peers)
 
     def get_units_for_cell(self, row: int, col: int) -> list[Unit]:
+        """Get all units containing a cell.
+
+        Args:
+            row: the row index of the cell.
+            col: the column index of the cell.
+
+        Returns:
+            A list of the three units (row, column, region) containing the cell.
+        """
         return self.cell_to_units[(row, col)]
 
     def get_peers_for_cell(self, row: int, col: int) -> set[Coordinate]:
+        """Get all peer cells (cells in the same unit).
+
+        Args:
+            row: the row index of the cell.
+            col: the column index of the cell.
+
+        Returns:
+            A set of coordinates for all cells that share a unit with the given
+            cell, excluding the cell itself.
+        """
         return self.cell_to_peers[(row, col)]

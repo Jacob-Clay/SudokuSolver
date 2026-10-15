@@ -2,7 +2,6 @@
 
 This module provides the Board and Cell classes for manging a sudoku puzzle,
 including cell values, candidates, and conflict detection.
-
 """
 
 from collections import defaultdict
@@ -14,16 +13,19 @@ from sudoku.grid import Coordinate, Grid, Unit, UnitType
 
 @dataclass
 class Cell:
-    """Class representing a single cell in a sudoku grid.
+    """A single cell in a sudoku grid.
+
+    A cell can be empty, have a single value, or have a set of candidate values.
+    Given cells are immutable clues that cannot be changed.
 
     Attributes:
-        value: The cell's value (1-9) if set, or None if empty.
+        value: The cell's value (1-9) if set, or None if unsolved.
         candidates: Set of possible values for this cell.
-        given: Wheather this cell is a given (clue) that cannot be changed.
+        given: Wheather this cell is a given (immutable clue).
     """
 
     value: int | None = None
-    candidates: set[int] = field(default_factory=set)
+    candidates: set[int] = field(default_factory=set[int])
     given: bool = False
 
     def is_solved(self) -> bool:
@@ -50,8 +52,12 @@ class Cell:
 class Board:
     """A sudoku board containing cells organized into units and regions.
 
+    The board manages a grid of cells and tracks their values and candidates. It
+    can validate completeness, detect conflicts (duplicate values in units), and
+    support both standard 9x9 Sudoku and custom grid sizes/shapes
+
     Attributes:
-        grid: The Grid object defining the board structure.
+        grid: The Grid object defining the board structure (rows, columns, regions).
         cells: Dictionary mapping coordinates to Cell objects.
     """
 
@@ -60,11 +66,15 @@ class Board:
     ) -> None:
         """Initialize a sudoku board.
 
+        Exactly one of regions or grid must be provided. if neither is provided,
+        creates a standard 9x9 Sudoku board with 3x3 regions.
+
         Args:
-            regions: List of Unit objects defining custom regions. If provided
-            grid must be None.
-            grid: A Grid object. If provided regions must be None. If neither is
-            provided, creates a standard 9x9 sudoku board.
+            regions: List of Unit objects defining custom regions. Automatically
+            infers board dimensions from region coordinates. Mutually exclusive
+            with grid.
+            grid: A Grid object defining the board structure. Mutually exclusive
+            with regions.
 
         Raises:
             ValueError: if both regions and grid are provided.
@@ -76,17 +86,7 @@ class Board:
                     "Board can only be contructed with either a list of regions or a grid"
                 )
 
-            n_rows: int = 0
-            n_cols: int = 0
-            combined_sets_of_coords: set[Coordinate] = set()
-            for region in regions:
-                combined_sets_of_coords.update(region.coords)
-            for row, col in combined_sets_of_coords:
-                n_rows = max(n_rows, row)
-                n_cols = max(n_cols, col)
-
-            n_rows += 1  # coords is 0 indexed
-            n_cols += 1  # coords is 0 indexed
+            n_rows, n_cols = self._determine_dimensions(regions)
 
             self.grid = Grid(n_rows=n_rows, n_cols=n_cols, regions=regions)
         elif grid:
@@ -100,7 +100,36 @@ class Board:
             for col in range(9):
                 self.cells[(row, col)] = Cell()
 
+    @staticmethod
+    def _determine_dimensions(regions: list[Unit]) -> tuple[int, int]:
+        """Determine grid dimensions from regions.
+
+        Args:
+            regions: List of Unit objects.
+
+        Returns:
+            Tuple of (n_rows, n_cols).
+        """
+        n_rows: int = 0
+        n_cols: int = 0
+        combined_sets_of_coords: set[Coordinate] = set()
+        for region in regions:
+            combined_sets_of_coords.update(region.coords)
+        for row, col in combined_sets_of_coords:
+            n_rows = max(n_rows, row)
+            n_cols = max(n_cols, col)
+
+        n_rows += 1  # coords is 0 indexed
+        n_cols += 1  # coords is 0 indexed
+
+        return (n_rows, n_cols)
+
     def _create_standard_grid(self) -> list[Unit]:
+        """Create the 9 regions for a standard 9x9 Sudoku.
+
+        Returns:
+            A list of 9 Unit objects representing the 3x3 boxes of standard Sudoku.
+        """
         regions: list[Unit] = []
         region_id = 0
 
@@ -131,12 +160,48 @@ class Board:
             row >= 0 and row < self.grid.n_rows and col >= 0 and col < self.grid.n_cols
         )
 
+    def _check_coordinate(self, row: int, col: int) -> None:
+        """Check if coordinates are within the board bounds.
+
+        Args:
+            row: The row index.
+            col: The column index.
+
+        Raises:
+            IndexError: If the coordinate is out of board bounds.
+        """
+        if not self._is_valid_coordinate(row, col):
+            raise IndexError("Invalid cell coordinate")
+
+    def _is_valid_digit(self, val: int) -> bool:
+        """Check if value is valid (1-9).
+
+        Args:
+            val: The value to check.
+
+        Returns:
+            True if value is 1-9, False otherwise.
+        """
+        return val >= 1 and val <= 9
+
+    def _check_digit(self, val: int) -> None:
+        """Check if value is valid (1-9).
+
+        Args:
+            val: The value to check.
+
+        Raises:
+            ValueError: If the value is not in the range 1-9.
+        """
+        if not self._is_valid_digit(val):
+            raise ValueError("value must be 1-9")
+
     def get_cell_value(self, row: int, col: int) -> int | None:
         """Get the value of a cell.
 
         Args:
-            row: the row index (0-n_rows).
-            col: the column index (0-n_cols).
+            row: the row index (0 to n_rows-1).
+            col: the column index (0 - n_cols-1).
 
         Returns:
             The cell's value (1-9) or None if empty.
@@ -144,27 +209,44 @@ class Board:
         Raises:
             IndexError: if the coordinate is out of bounds.
         """
-        if not self._is_valid_coordinate(row, col):
-            raise IndexError("Invalid cell coordinate")
+        self._check_coordinate(row, col)
 
         return self.cells[(row, col)].value
 
     def set_cell_value(self, row: int, col: int, value: int) -> None:
-        if not self._is_valid_coordinate(row, col):
-            raise IndexError("Invalid cell coordinate")
+        """Set the value of a cell to a single digit, clearing candidates.
 
-        if self.cells[(row, col)].given:
+        Args:
+            row: The row index (0 to n_rows-1).
+            col: The column index (0 to n_cols-1).
+            value: The value to set (1-9)
+
+        Raises:
+            IndexError: If the coordinate is out of bounds.
+            ValueError: If the cell is a given (immutable) or value is not 1-9.
+        """
+        self._check_coordinate(row, col)
+        self._check_digit(value)
+
+        cell: Cell = self.cells[(row, col)]
+        if cell.given:
             raise ValueError("Cell is given and therefore can't be changed")
-        if value < 1 or value > 9:
-            raise ValueError("Cell value must be 1-9")
 
-        cell = self.cells[(row, col)]
         cell.value = value
         cell.candidates = set()
 
     def clear_cell(self, row: int, col: int) -> None:
-        if not self._is_valid_coordinate(row, col):
-            raise IndexError("Invalid cell coordinate")
+        """Clear a cell's value and candidates.
+
+        Args:
+            row: The row index (0 to n_rows-1).
+            col: The column index (0 to n_cols-1).
+
+        Raises:
+            IndexError: If the coordinate is out of bounds.
+            ValueError: If the cell is a given (immutable).
+        """
+        self._check_coordinate(row, col)
 
         cell = self.cells[(row, col)]
         if cell.given:
@@ -174,35 +256,103 @@ class Board:
         cell.candidates = set()
 
     def toggle_cell_candidate(self, row: int, col: int, value: int) -> None:
-        if not self._is_valid_coordinate(row, col):
-            raise IndexError("Invalid cell coordinate")
+        """Add or remove a candidate from a cell.
 
-        cell = self.cells[(row, col)]
+        If the value is already a candidate, it is removed. Otherwise, it is added.
+
+        Args:
+            row: The row index (0 to n_rows-1).
+            col: The column index (0 to n_cols-1).
+            value: The candidate value to toggle (1-9).
+
+        Raises:
+            IndexError: If the coordinate is out of bounds.
+            ValueError: If the cell is a given, already solved, or value is not 1-9.
+        """
+        self._check_coordinate(row, col)
+        self._check_digit(value)
+
+        cell: Cell = self.cells[(row, col)]
         if cell.given:
             raise ValueError("Cell is given and therefore can't be changed")
         if cell.is_solved():
             raise ValueError("Cell is solved and therefore can't have candidates")
-        if value < 1 or value > 9:
-            raise ValueError("Candidate value must be 1-9")
 
         if value in cell.candidates:
             cell.candidates.discard(value)
         else:
             cell.candidates.add(value)
 
+    def get_cell_candidates(self, row: int, col: int) -> frozenset[int]:
+        """Retrieve all candidate vales for a cell.
+
+        Returns an immutable set of all possible values that can be placed in
+        the specified cell, based on current board state.
+
+        Args:
+            row: The row index (0 to n_rows-1).
+            col: The column index (0 to n_cols-1).
+
+        Returns:
+            A frozenset containing all candidate values for the cell.
+
+        Raises:
+            IndexError: If the coordinate is out of bounds.
+        """
+        self._check_coordinate(row, col)
+
+        cell: Cell = self.cells[(row, col)]
+        return frozenset(cell.candidates)
+
+    def remove_cell_candidate(self, row: int, col: int, value: int) -> None:
+        """Remove a candidate value from a cell.
+
+        Eliminates the specified value from the cell's set of possible candidates.
+        Has no effect if the value is not currently a candidate.
+
+        Args:
+            row: The row index (0 to n_rows-1).
+            col: the column index (0 to n_cols-1).
+            value: the candidate value to remove (1-9).
+
+        Raises:
+            IndexError: If the coordinate is out of bounds.
+            ValueError: if value is not 1-9
+        """
+        self._check_coordinate(row, col)
+        self._check_digit(value)
+
+        cell: Cell = self.cells[(row, col)]
+        cell.candidates.discard(value)
+
     def set_given(self, row: int, col: int, value: int) -> None:
-        if not self._is_valid_coordinate(row, col):
-            raise IndexError("Invalid cell coordinate")
+        """Set a cell as a given (immutable clue) with a value.
 
-        if value < 1 or value > 9:
-            raise ValueError("Cell value must be 1-9")
+        Given cells cannot be modified or cleared.
 
-        cell = self.cells[(row, col)]
+        Args:
+            row: The row index (0 to n_rows-1).
+            col: The column index (0 to n_cols-1).
+            value: The value to set (1-9).
+
+        Raises:
+            IndexError: If the coordinate is out of bounds.
+            ValueError: If value is not 1-9.
+        """
+        self._check_coordinate(row, col)
+        self._check_digit(value)
+
+        cell: Cell = self.cells[(row, col)]
         cell.value = value
         cell.candidates = set()
         cell.given = True
 
     def is_complete(self) -> bool:
+        """Check if all cells have assigned values.
+
+        Returns:
+            True if every cell has a value, False otherwise.
+        """
         for cell in self.cells.values():
             if not cell.is_solved():
                 return False
@@ -210,6 +360,14 @@ class Board:
         return True
 
     def get_conflicts(self) -> set[Coordinate]:
+        """Find all cells that violate Sudoku constraints.
+
+        A conflict occurs when two or more cells in the same unit (row, column,
+        or region) have the same value.
+
+        Returns:
+            A set of cell coordinates that contain conflicting values.
+        """
         conflicts: set[Coordinate] = set()
         for unit in self.grid.units:
             value_to_coords: dict[int, set[Coordinate]] = defaultdict(set)
@@ -227,10 +385,20 @@ class Board:
         return conflicts
 
     def is_solved(self) -> bool:
+        """Check if the board is completely and validly solved.
+
+        Returns:
+            True if all cells are filled and no conflicts exist, False otherwise.
+        """
         return self.is_complete() and len(self.get_conflicts()) == 0
 
     def copy(self) -> Board:
-        new_board = Board(grid=self.grid)
+        """Create a deep copy of the board.
+
+        Returns:
+            A new Board instance with the same grid and cell states as this board.
+        """
+        new_board: Board = Board(grid=self.grid)
         new_cells: dict[Coordinate, Cell] = {}
         for coord, cell in self.cells.items():
             new_cells[coord] = Cell(cell.value, set(cell.candidates), cell.given)
@@ -240,6 +408,11 @@ class Board:
 
     @override
     def __str__(self) -> str:
+        """Return a string representation of the board.
+
+        Returns:
+            A multi-line string showing the board grid with cell values.
+        """
         s = ""
         for i in range(self.grid.n_rows):
             for j in range(self.grid.n_cols):
@@ -249,14 +422,42 @@ class Board:
 
     @classmethod
     def from_string(cls, input_str: str, regions: list[Unit] | None = None) -> Board:
-        if len(input_str) != 81:
-            raise ValueError("input string needs to be 81 char long")
+        """Create a board from a string representation.
+
+        The input string must be exactly n_rows * n_cols characters long,
+        representing the board in row-major order (left-to-right,
+        top-to-bottom). Digits 1-9 are given values, while '0', '*', '_', and
+        '.' represent empty cells.
+
+        Args:
+            input_str: A string of n_rows * n_cols characters representing the
+            board state.
+            regions: Optional list of Unit objects for a custom board. If not
+            provided, creates a standard 9x9 Sudoku board.
+
+        Returns:
+            A new Board instance with cells initialized from the input string.
+
+        Raises:
+            ValueError: If input_str is not exactly n_rows * n_cols characters
+            or contains invalid characters.
+        """
+        n_rows: int
+        n_cols: int
+        if regions:
+            n_rows, n_cols = cls._determine_dimensions(regions)
+        else:
+            n_rows = 9
+            n_cols = 9
+
+        if len(input_str) != n_rows * n_cols:
+            raise ValueError("input string needs to be n_rows * n_cols char long")
 
         board: Board = cls(regions=regions)
 
         for index, char in enumerate(input_str):
-            row = index // 9
-            col = index % 9
+            row = index // n_rows
+            col = index % n_rows
             if char.isdigit():
                 if char == "0":
                     continue

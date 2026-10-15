@@ -51,26 +51,26 @@ class TestBoard:
         board: Board = Board()
 
         board.toggle_cell_candidate(0, 0, 1)
-        assert 1 in board.cells[(0, 0)].candidates
+        assert 1 in board.get_cell_candidates(0, 0)
         board.toggle_cell_candidate(0, 0, 1)
-        assert 1 not in board.cells[(0, 0)].candidates
+        assert 1 not in board.get_cell_candidates(0, 0)
 
     def test_cell_candidates_clear_upon_setting_value(self) -> None:
         board: Board = Board()
 
         board.toggle_cell_candidate(0, 0, 1)
-        assert 1 in board.cells[(0, 0)].candidates
+        assert 1 in board.get_cell_candidates(0, 0)
         board.set_cell_value(0, 0, 3)
         assert board.get_cell_value(0, 0) == 3
-        assert 1 not in board.cells[(0, 0)].candidates
+        assert 1 not in board.get_cell_candidates(0, 0)
 
     def test_board_copy(self) -> None:
         board1: Board = Board()
         board2: Board = board1.copy()
 
         board1.toggle_cell_candidate(0, 0, 1)
-        assert 1 in board1.cells[(0, 0)].candidates
-        assert 1 not in board2.cells[(0, 0)].candidates
+        assert 1 in board1.get_cell_candidates(0, 0)
+        assert 1 not in board2.get_cell_candidates(0, 0)
 
         board1.set_cell_value(0, 0, 1)
         assert board1.get_cell_value(0, 0) == 1
@@ -123,6 +123,11 @@ class TestBoardInvalidIndex:
         with pytest.raises(IndexError):
             board.clear_cell(row, col)
 
+    def test_get_cell_candadiates(self, row: int, col: int) -> None:
+        board: Board = Board()
+        with pytest.raises(IndexError):
+            _ = board.get_cell_candidates(row, col)
+
 
 type BoardError = ValueError | IndexError
 
@@ -159,6 +164,13 @@ class TestBoardInvalidValue:
         board: Board = Board()
         with pytest.raises(expected_error):
             board.set_given(row, col, val)
+
+    def test_remove_cell_candidate(
+        self, row: int, col: int, val: int, expected_error: type[BoardError]
+    ) -> None:
+        board: Board = Board()
+        with pytest.raises(expected_error):
+            board.remove_cell_candidate(row, col, val)
 
 
 @pytest.fixture
