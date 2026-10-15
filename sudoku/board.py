@@ -1,6 +1,5 @@
 from sudoku.grid import Coordinate, Grid, Unit, UnitType
 from collections import defaultdict
-from copy import deepcopy
 from dataclasses import dataclass, field
 
 
@@ -29,8 +28,14 @@ class Cell:
 
 
 class Board:
-    def __init__(self, regions: list[Unit] | None = None) -> None:
+    def __init__(
+        self, regions: list[Unit] | None = None, grid: Grid | None = None
+    ) -> None:
         if regions:
+            if grid:
+                raise ValueError(
+                    "Board can only be contructed with either a list of regions or a grid"
+                )
             n_rows: int = 0
             n_cols: int = 0
             combined_sets_of_coords: set[Coordinate] = set().union(
@@ -42,6 +47,8 @@ class Board:
             n_cols += 1  # coords is 0 indexed
 
             self.grid = Grid(n_rows=n_rows, n_cols=n_cols, regions=regions)
+        elif grid:
+            self.grid = grid
         else:
             self.grid = Grid(n_rows=9, n_cols=9, regions=self._create_standard_grid())
 
@@ -52,16 +59,18 @@ class Board:
                 self.cells[(row, col)] = Cell()
 
     def _create_standard_grid(self) -> list[Unit]:
-        regions = []
+        regions: list[Unit] = []
         region_id = 0
 
         for box_row in range(3):
             for box_col in range(3):
-                cells_in_region = set()
+                cells_in_region: set[Coordinate] = set()
                 for row in range(box_row * 3, box_row * 3 + 3):
                     for col in range(box_col * 3, box_col * 3 + 3):
                         cells_in_region.add((row, col))
-                regions.append(Unit(cells_in_region, region_id, UnitType.REGION))
+                regions.append(
+                    Unit(frozenset(cells_in_region), region_id, UnitType.REGION)
+                )
                 region_id += 1
 
         return regions
@@ -156,8 +165,11 @@ class Board:
         return self.is_complete() and len(self.get_conflicts()) == 0
 
     def copy(self) -> Board:
-        new_board = Board(self.grid.regions)
-        new_board.cells = deepcopy(self.cells)
+        new_board = Board(grid=self.grid)
+        new_cells: dict[Coordinate, Cell] = {}
+        for coord, cell in self.cells.items():
+            new_cells[coord] = Cell(cell.value, set(cell.candidates), cell.given)
+        new_board.cells = new_cells
 
         return new_board
 

@@ -68,9 +68,15 @@ class TestBoard:
         board1: Board = Board()
         board2: Board = board1.copy()
 
+        board1.toggle_cell_candidate(0, 0, 1)
+        assert 1 in board1.cells[(0, 0)].candidates
+        assert 1 not in board2.cells[(0, 0)].candidates
+
         board1.set_cell_value(0, 0, 1)
         assert board1.get_cell_value(0, 0) == 1
         assert board2.get_cell_value(0, 0) is None
+
+        assert board1.grid is board2.grid
 
     def test_board_input(self):
         import_val = "500000000000000000000000000000000000000000005000000000050000000000000500000000005"
