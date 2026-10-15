@@ -206,18 +206,35 @@ class Board:
         """Get the value of a cell.
 
         Args:
-            row: the row index (0 to n_rows-1).
-            col: the column index (0 - n_cols-1).
+            row: The row index (0 to n_rows-1).
+            col: The column index (0 to n_cols-1).
 
         Returns:
             The cell's value (1-9) or None if empty.
 
         Raises:
-            IndexError: if the coordinate is out of bounds.
+            IndexError: If the coordinate is out of bounds.
         """
         self._check_coordinate(row, col)
 
         return self.cells[(row, col)].value
+
+    def is_cell_given(self, row: int, col: int) -> bool:
+        """Checks if a cell is given (immutable clue).
+
+        Args:
+            row: The row index (0 to n_rows-1).
+            col: The column index (0 to n_cols-1).
+
+        Returns:
+            True if the cell is given, false otherwise.
+
+        Raises:
+            IndexError: If the coordinate is out of bounds.
+        """
+        self._check_coordinate(row, col)
+
+        return self.cells[(row, col)].given
 
     def set_cell_value(self, row: int, col: int, value: int) -> None:
         """Set the value of a cell to a single digit, clearing candidates.

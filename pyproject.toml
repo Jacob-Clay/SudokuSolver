@@ -20,4 +20,8 @@ pythonVersion = "3.14"
 strict = ["sudoku/board.py", "sudoku/grid.py"]
 
 [dependency-groups]
-dev = ["pyright>=1.1.414", "pytest>=9.1.1"]
+dev = [
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+]

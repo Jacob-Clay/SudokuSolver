@@ -7,9 +7,10 @@ If you rename something in board.py or grid.py, update it here and nothing else.
 Uses from the model:
     Board()
     board.grid.n_rows, board.grid.n_cols, board.grid.regions (units with .coords)
+    board.get_cell_value / get_cell_condidates / is_cell_given
     board.cells[(row, col)]  -> Cell with .value, .candidates, .given
     board.set_cell_value / clear_cell / toggle_cell_candidate  (raise ValueError)
-    board.get_conflicts(), board.is_solved(), board.import_string()
+    board.get_conflicts(), board.is_solved(), board.from_string()
 """
 
 from sudoku.board import Board, Cell
@@ -25,8 +26,16 @@ def grid_size(board: Board) -> tuple[int, int]:
     return board.grid.n_rows, board.grid.n_cols
 
 
-def get_cell(board: Board, coord: Coordinate) -> Cell:
-    return board.cells[coord]
+def get_cell_candidates(board: Board, coord: Coordinate) -> frozenset[int]:
+    return board.get_cell_candidates(*coord)
+
+
+def get_cell_value(board: Board, coord: Coordinate) -> int | None:
+    return board.get_cell_value(*coord)
+
+
+def is_cell_given(board: Board, coord: Coordinate) -> bool:
+    return board.is_cell_given(*coord)
 
 
 def place(board: Board, coord: Coordinate, digit: int) -> None:
@@ -70,6 +79,6 @@ def board_to_string(board: Board) -> str:
     chars = []
     for row in range(n_rows):
         for col in range(n_cols):
-            value = get_cell(board, (row, col)).value
+            value = get_cell_value(board, (row, col))
             chars.append("." if value is None else str(value))
     return "".join(chars)

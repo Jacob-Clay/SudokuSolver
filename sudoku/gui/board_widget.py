@@ -179,18 +179,20 @@ class BoardWidget(QWidget):
                 yield (row, col)
 
     def _paint_backgrounds(self, painter, layout, conflicts) -> None:
-        painter.fillRect(QRectF(layout.left, layout.top, layout.width, layout.height), PAPER)
+        painter.fillRect(
+            QRectF(layout.left, layout.top, layout.width, layout.height), PAPER
+        )
 
         selected_value = None
         if self.selected is not None:
-            selected_value = model_api.get_cell(self.board, self.selected).value
+            selected_value = model_api.get_cell_value(self.board, self.selected)
 
         for coord in self._cells(layout):
-            cell = model_api.get_cell(self.board, coord)
+            cell_value = model_api.get_cell_value(self.board, coord)
             fill = None
             if coord in conflicts:
                 fill = CONFLICT_FILL
-            if selected_value is not None and cell.value == selected_value:
+            if selected_value is not None and cell_value == selected_value:
                 fill = SAME_DIGIT_FILL
             if coord == self.selected:
                 fill = SELECTED_FILL
@@ -236,25 +238,29 @@ class BoardWidget(QWidget):
         candidate_font.setPixelSize(max(1, int(layout.cell * 0.24)))
 
         for coord in self._cells(layout):
-            cell = model_api.get_cell(self.board, coord)
+            cell_value = model_api.get_cell_value(self.board, coord)
+            is_given = model_api.is_cell_given(self.board, coord)
+            cell_candidates = model_api.get_cell_candidates(self.board, coord)
             rect = self._rect(layout, coord)
 
-            if cell.value is not None:
-                digit_font.setBold(cell.given)
+            if cell_value is not None:
+                digit_font.setBold(is_given)
                 painter.setFont(digit_font)
                 if coord in conflicts:
                     painter.setPen(CONFLICT_TEXT)
-                elif cell.given:
+                elif is_given:
                     painter.setPen(GIVEN_TEXT)
                 else:
                     painter.setPen(PLAYER_TEXT)
-                painter.drawText(rect, Qt.AlignCenter, str(cell.value))
-            elif cell.candidates:
+                painter.drawText(rect, Qt.AlignCenter, str(cell_value))
+            elif cell_candidates:
                 painter.setFont(candidate_font)
                 painter.setPen(CANDIDATE_TEXT)
-                self._paint_candidates(painter, rect, cell.candidates, layout.n_cols)
+                self._paint_candidates(painter, rect, cell_candidates, layout.n_cols)
 
-    def _paint_candidates(self, painter, rect: QRectF, candidates, max_digit: int) -> None:
+    def _paint_candidates(
+        self, painter, rect: QRectF, candidates, max_digit: int
+    ) -> None:
         """Each digit in a fixed spot: 1 top-left ... 9 bottom-right."""
         per_row = math.ceil(math.sqrt(max_digit))
         n_rows = math.ceil(max_digit / per_row)
