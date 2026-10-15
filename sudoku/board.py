@@ -80,6 +80,8 @@ class Board:
             ValueError: if both regions and grid are provided.
         """
         self.grid: Grid
+        n_rows: int
+        n_cols: int
         if regions:
             if grid:
                 raise ValueError(
@@ -91,13 +93,17 @@ class Board:
             self.grid = Grid(n_rows=n_rows, n_cols=n_cols, regions=regions)
         elif grid:
             self.grid = grid
+            n_rows = grid.n_rows
+            n_cols = grid.n_cols
         else:
             self.grid = Grid(n_rows=9, n_cols=9, regions=self._create_standard_grid())
+            n_rows = 9
+            n_cols = 9
 
         self.cells: dict[Coordinate, Cell] = {}
 
-        for row in range(9):
-            for col in range(9):
+        for row in range(n_rows):
+            for col in range(n_cols):
                 self.cells[(row, col)] = Cell()
 
     @staticmethod
@@ -456,8 +462,8 @@ class Board:
         board: Board = cls(regions=regions)
 
         for index, char in enumerate(input_str):
-            row = index // n_rows
-            col = index % n_rows
+            row = index // n_cols
+            col = index % n_cols
             if char.isdigit():
                 if char == "0":
                     continue
