@@ -3,8 +3,8 @@ import pytest
 
 
 @pytest.fixture
-def unit_setup():
-    coords: set[Coordinate] = {(1, 1), (1, 2), (1, 3)}
+def unit_setup() -> Unit:
+    coords: frozenset[Coordinate] = frozenset({(1, 1), (1, 2), (1, 3)})
     id: int = 1
     unit_type: UnitType = UnitType.COLUMN
 
@@ -12,19 +12,19 @@ def unit_setup():
 
 
 class TestUnit:
-    def test_unit_creation(self, unit_setup):
+    def test_unit_creation(self, unit_setup: Unit) -> None:
         unit: Unit = unit_setup
         assert unit.type == UnitType.COLUMN
         assert unit.id == 1
         assert unit.coords == {(1, 1), (1, 2), (1, 3)}
 
-    def test_cell_in_unit(self, unit_setup):
+    def test_cell_in_unit(self, unit_setup: Unit) -> None:
         unit: Unit = unit_setup
         assert unit.contains(1, 1)
         assert unit.contains(1, 2)
         assert unit.contains(1, 3)
 
-    def test_cell_not_in_unit(self, unit_setup):
+    def test_cell_not_in_unit(self, unit_setup: Unit) -> None:
         unit: Unit = unit_setup
         assert not unit.contains(2, 1)
         assert not unit.contains(3, 1)
@@ -32,7 +32,7 @@ class TestUnit:
 
 
 @pytest.fixture
-def grid_setup():
+def grid_setup() -> Grid:
     num_rows: int = 9
     num_cols: int = 9
     regions: list[Unit] = []
@@ -40,25 +40,25 @@ def grid_setup():
 
     for box_row in range(3):
         for box_col in range(3):
-            cells_in_region = set()
+            cells_in_region: set[Coordinate] = set()
             for row in range(box_row * 3, box_row * 3 + 3):
                 for col in range(box_col * 3, box_col * 3 + 3):
                     cells_in_region.add((row, col))
-            regions.append(Unit(cells_in_region, region_id, UnitType.REGION))
+            regions.append(Unit(frozenset(cells_in_region), region_id, UnitType.REGION))
             region_id += 1
 
     return Grid(num_rows, num_cols, regions=regions)
 
 
 class TestGrid:
-    def test_grid_creation(self, grid_setup):
+    def test_grid_creation(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
 
         assert grid.n_rows == 9
         assert grid.n_cols == 9
         assert len(grid.regions) == 9
 
-    def test_units_list(self, grid_setup):
+    def test_units_list(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
 
         num_rows = 0
@@ -79,7 +79,7 @@ class TestGrid:
         assert num_regions == 9
         assert len(grid.units) == 27  # 9 * 3 (9 cols, 9 rows, 9 regions)
 
-    def test_cell_to_peers(self, grid_setup):
+    def test_cell_to_peers(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
 
         for cell, peers in grid.cell_to_peers.items():
@@ -88,7 +88,7 @@ class TestGrid:
 
         assert len(grid.cell_to_peers) == 81
 
-    def test_cell_to_units(self, grid_setup):
+    def test_cell_to_units(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
 
         for units in grid.cell_to_units.values():
@@ -111,7 +111,7 @@ class TestGrid:
 
         assert len(grid.cell_to_units) == 81
 
-    def test_grid_rows(self, grid_setup):
+    def test_grid_rows(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
 
         for unit in grid.rows:
@@ -119,7 +119,7 @@ class TestGrid:
 
         assert len(grid.rows) == 9
 
-    def test_grid_cols(self, grid_setup):
+    def test_grid_cols(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
 
         for unit in grid.columns:
@@ -127,42 +127,44 @@ class TestGrid:
 
         assert len(grid.columns) == 9
 
-    def test_invalid_n_cols(self):
-        regions: list[Unit] = [Unit(set(), 0, UnitType.REGION)]
+    def test_invalid_n_cols(self) -> None:
+        regions: list[Unit] = [Unit(frozenset(), 0, UnitType.REGION)]
         n_cols: int = 0
         n_rows: int = 1
         with pytest.raises(ValueError):
-            Grid(n_rows, n_cols, regions)
+            _ = Grid(n_rows, n_cols, regions)
 
-    def test_invalid_n_rows(self):
-        regions: list[Unit] = [Unit(set(), 0, UnitType.REGION)]
+    def test_invalid_n_rows(self) -> None:
+        regions: list[Unit] = [Unit(frozenset(), 0, UnitType.REGION)]
         n_cols: int = 1
         n_rows: int = 0
         with pytest.raises(ValueError):
-            Grid(n_rows, n_cols, regions)
+            _ = Grid(n_rows, n_cols, regions)
 
-    def test_invalid_regions_cell_without_region(self):
-        regions: list[Unit] = [Unit({(0, 0), (0, 1), (1, 0)}, 0, UnitType.REGION)]
-        n_cols: int = 2
-        n_rows: int = 2
-        with pytest.raises(ValueError):
-            Grid(n_rows, n_cols, regions)
-
-    def test_invalid_regions_cell_with_multiple_regions(self):
+    def test_invalid_regions_cell_without_region(self) -> None:
         regions: list[Unit] = [
-            Unit({(0, 0), (0, 1), (1, 0), (0, 1)}, 0, UnitType.REGION),
-            Unit({(0, 0)}, 1, UnitType.REGION),
+            Unit(frozenset({(0, 0), (0, 1), (1, 0)}), 0, UnitType.REGION)
         ]
         n_cols: int = 2
         n_rows: int = 2
         with pytest.raises(ValueError):
-            Grid(n_rows, n_cols, regions)
+            _ = Grid(n_rows, n_cols, regions)
 
-    def test_invalid_regions_wrong_type(self):
+    def test_invalid_regions_cell_with_multiple_regions(self) -> None:
         regions: list[Unit] = [
-            Unit({(0, 0), (0, 1), (1, 0), (1, 1)}, 0, UnitType.COLUMN)
+            Unit(frozenset({(0, 0), (0, 1), (1, 0), (1, 1)}), 0, UnitType.REGION),
+            Unit(frozenset({(0, 0)}), 1, UnitType.REGION),
         ]
         n_cols: int = 2
         n_rows: int = 2
         with pytest.raises(ValueError):
-            Grid(n_rows, n_cols, regions)
+            _ = Grid(n_rows, n_cols, regions)
+
+    def test_invalid_regions_wrong_type(self) -> None:
+        regions: list[Unit] = [
+            Unit(frozenset({(0, 0), (0, 1), (1, 0), (1, 1)}), 0, UnitType.COLUMN)
+        ]
+        n_cols: int = 2
+        n_rows: int = 2
+        with pytest.raises(ValueError):
+            _ = Grid(n_rows, n_cols, regions)

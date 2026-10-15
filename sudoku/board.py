@@ -1,6 +1,15 @@
-from sudoku.grid import Coordinate, Grid, Unit, UnitType
+"""Sudoku board representation and cell management.
+
+This module provides the Board and Cell classes for manging a sudoku puzzle,
+including cell values, candidates, and conflict detection.
+
+"""
+
 from collections import defaultdict
 from dataclasses import dataclass, field
+from typing import override
+
+from sudoku.grid import Coordinate, Grid, Unit, UnitType
 
 
 @dataclass
@@ -8,8 +17,9 @@ class Cell:
     """Class representing a single cell in a sudoku grid.
 
     Attributes:
-        value: Value of cell if set, typically 1-9
-        candidates: Set of possible values
+        value: The cell's value (1-9) if set, or None if empty.
+        candidates: Set of possible values for this cell.
+        given: Wheather this cell is a given (clue) that cannot be changed.
     """
 
     value: int | None = None
@@ -17,10 +27,20 @@ class Cell:
     given: bool = False
 
     def is_solved(self) -> bool:
-        """Check if the cell has a value assigned."""
+        """Check if the cell has a value assigned.
+
+        Returns:
+            True if the cell has a value, False otherwise
+        """
         return self.value is not None
 
+    @override
     def __str__(self) -> str:
+        """Return string representation of the cell.
+
+        Returns:
+            The cell's value as a string, or '_' if empty.
+        """
         if self.value:
             return f"{self.value}"
         else:
@@ -28,20 +48,42 @@ class Cell:
 
 
 class Board:
+    """A sudoku board containing cells organized into units and regions.
+
+    Attributes:
+        grid: The Grid object defining the board structure.
+        cells: Dictionary mapping coordinates to Cell objects.
+    """
+
     def __init__(
         self, regions: list[Unit] | None = None, grid: Grid | None = None
     ) -> None:
+        """Initialize a sudoku board.
+
+        Args:
+            regions: List of Unit objects defining custom regions. If provided
+            grid must be None.
+            grid: A Grid object. If provided regions must be None. If neither is
+            provided, creates a standard 9x9 sudoku board.
+
+        Raises:
+            ValueError: if both regions and grid are provided.
+        """
+        self.grid: Grid
         if regions:
             if grid:
                 raise ValueError(
                     "Board can only be contructed with either a list of regions or a grid"
                 )
+
             n_rows: int = 0
             n_cols: int = 0
-            combined_sets_of_coords: set[Coordinate] = set().union(
-                *(c.coords for c in regions)
-            )
-            n_rows, n_cols = map(max, zip(*combined_sets_of_coords))
+            combined_sets_of_coords: set[Coordinate] = set()
+            for region in regions:
+                combined_sets_of_coords.update(region.coords)
+            for row, col in combined_sets_of_coords:
+                n_rows = max(n_rows, row)
+                n_cols = max(n_cols, col)
 
             n_rows += 1  # coords is 0 indexed
             n_cols += 1  # coords is 0 indexed
@@ -76,9 +118,32 @@ class Board:
         return regions
 
     def _is_valid_coordinate(self, row: int, col: int) -> bool:
-        return row >= 0 and row <= 8 and col >= 0 and col <= 8
+        """Check if coordinates are within the board bounds.
 
-    def get_cell_value(self, row: int, col: int):
+        Args:
+            row: The row index.
+            col: the column index.
+
+        Returns:
+            True if coordinates are valid, False otherwise.
+        """
+        return (
+            row >= 0 and row < self.grid.n_rows and col >= 0 and col < self.grid.n_cols
+        )
+
+    def get_cell_value(self, row: int, col: int) -> int | None:
+        """Get the value of a cell.
+
+        Args:
+            row: the row index (0-n_rows).
+            col: the column index (0-n_cols).
+
+        Returns:
+            The cell's value (1-9) or None if empty.
+
+        Raises:
+            IndexError: if the coordinate is out of bounds.
+        """
         if not self._is_valid_coordinate(row, col):
             raise IndexError("Invalid cell coordinate")
 
@@ -173,6 +238,7 @@ class Board:
 
         return new_board
 
+    @override
     def __str__(self) -> str:
         s = ""
         for i in range(self.grid.n_rows):

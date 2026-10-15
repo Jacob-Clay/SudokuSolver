@@ -46,7 +46,7 @@ class Grid:
         init=False, default_factory=dict
     )
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
 
         # check if n_rows and n_cols are valid
         if self.n_rows <= 0 or self.n_cols <= 0:
@@ -55,18 +55,16 @@ class Grid:
         cols: list[Unit] = []
         rows: list[Unit] = []
         units: list[Unit] = []
+        cells: frozenset[Coordinate]
+        new_unit: Unit
         for col in range(self.n_cols):
-            cells: frozenset[Coordinate] = frozenset(
-                {(row, col) for row in range(self.n_rows)}
-            )
+            cells = frozenset({(row, col) for row in range(self.n_rows)})
             new_unit = Unit(cells, col, UnitType.COLUMN)
             cols.append(new_unit)
             units.append(new_unit)
 
         for row in range(self.n_rows):
-            cells: frozenset[Coordinate] = frozenset(
-                {(row, col) for col in range(self.n_cols)}
-            )
+            cells = frozenset({(row, col) for col in range(self.n_cols)})
             new_unit = Unit(cells, row, UnitType.ROW)
             rows.append(new_unit)
             units.append(new_unit)
