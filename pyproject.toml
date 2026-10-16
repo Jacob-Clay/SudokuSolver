@@ -19,9 +19,15 @@ venv = ".venv"
 pythonVersion = "3.14"
 strict = ["sudoku/board.py", "sudoku/grid.py"]
 
-[dependency-groups]
-dev = [
-    "pyright>=1.1.414",
-    "pytest>=9.1.1",
-    "pytest-cov>=7.1.0",
+[tool.coverage.run]
+omit = [
+  "sudoku/__init__.py",
+  "sudoku/gui/__init__.py",
+  "sudoku/gui/__main__.py",
+  "sudoku/gui/board_widget.py",
+  "sudoku/gui/main_window.py",
+  "sudoku/gui/model_api.py",
 ]
+
+[dependency-groups]
+dev = ["pyright>=1.1.414", "pytest>=9.1.1", "pytest-cov>=7.1.0"]

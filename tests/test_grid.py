@@ -18,6 +18,8 @@ class TestUnit:
         assert unit.id == 1
         assert unit.coords == {(1, 1), (1, 2), (1, 3)}
 
+        hash(unit)  # implicitly test that Unit is hashable
+
     def test_cell_in_unit(self, unit_setup: Unit) -> None:
         unit: Unit = unit_setup
         assert unit.contains(1, 1)
@@ -47,7 +49,7 @@ def grid_setup() -> Grid:
             regions.append(Unit(frozenset(cells_in_region), region_id, UnitType.REGION))
             region_id += 1
 
-    return Grid(num_rows, num_cols, regions=regions)
+    return Grid(num_rows, num_cols, regions=tuple(regions))
 
 
 class TestGrid:
@@ -57,6 +59,21 @@ class TestGrid:
         assert grid.n_rows == 9
         assert grid.n_cols == 9
         assert len(grid.regions) == 9
+
+        peers_dict = dict(grid.cell_to_peers)
+
+        for cell, peers in peers_dict.items():
+            assert len(peers) == 20
+            for peer in peers:
+                assert cell in peers_dict[peer]
+
+        assert (2, 2) in peers_dict[(0, 0)]
+        assert (3, 3) not in peers_dict[(0, 0)]
+
+        for unit in grid.units:
+            assert len(unit.coords) == 9
+
+        hash(grid)  # implicitly test that grid is hashable
 
     def test_units_list(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
@@ -82,7 +99,7 @@ class TestGrid:
     def test_cell_to_peers(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
 
-        for cell, peers in grid.cell_to_peers.items():
+        for cell, peers in grid.cell_to_peers:
             assert len(peers) == 20
             assert cell not in peers
 
@@ -91,7 +108,7 @@ class TestGrid:
     def test_cell_to_units(self, grid_setup: Grid) -> None:
         grid: Grid = grid_setup
 
-        for units in grid.cell_to_units.values():
+        for _, units in grid.cell_to_units:
             has_col = False
             has_row = False
             has_region = False
@@ -128,42 +145,42 @@ class TestGrid:
         assert len(grid.columns) == 9
 
     def test_invalid_n_cols(self) -> None:
-        regions: list[Unit] = [Unit(frozenset(), 0, UnitType.REGION)]
+        regions: tuple[Unit, ...] = (Unit(frozenset(), 0, UnitType.REGION),)
         n_cols: int = 0
         n_rows: int = 1
         with pytest.raises(ValueError):
             _ = Grid(n_rows, n_cols, regions)
 
     def test_invalid_n_rows(self) -> None:
-        regions: list[Unit] = [Unit(frozenset(), 0, UnitType.REGION)]
+        regions: tuple[Unit, ...] = (Unit(frozenset(), 0, UnitType.REGION),)
         n_cols: int = 1
         n_rows: int = 0
         with pytest.raises(ValueError):
             _ = Grid(n_rows, n_cols, regions)
 
     def test_invalid_regions_cell_without_region(self) -> None:
-        regions: list[Unit] = [
-            Unit(frozenset({(0, 0), (0, 1), (1, 0)}), 0, UnitType.REGION)
-        ]
+        regions: tuple[Unit, ...] = (
+            Unit(frozenset({(0, 0), (0, 1), (1, 0)}), 0, UnitType.REGION),
+        )
         n_cols: int = 2
         n_rows: int = 2
         with pytest.raises(ValueError):
             _ = Grid(n_rows, n_cols, regions)
 
     def test_invalid_regions_cell_with_multiple_regions(self) -> None:
-        regions: list[Unit] = [
+        regions: tuple[Unit, ...] = (
             Unit(frozenset({(0, 0), (0, 1), (1, 0), (1, 1)}), 0, UnitType.REGION),
             Unit(frozenset({(0, 0)}), 1, UnitType.REGION),
-        ]
+        )
         n_cols: int = 2
         n_rows: int = 2
         with pytest.raises(ValueError):
             _ = Grid(n_rows, n_cols, regions)
 
     def test_invalid_regions_wrong_type(self) -> None:
-        regions: list[Unit] = [
-            Unit(frozenset({(0, 0), (0, 1), (1, 0), (1, 1)}), 0, UnitType.COLUMN)
-        ]
+        regions: tuple[Unit, ...] = (
+            Unit(frozenset({(0, 0), (0, 1), (1, 0), (1, 1)}), 0, UnitType.COLUMN),
+        )
         n_cols: int = 2
         n_rows: int = 2
         with pytest.raises(ValueError):

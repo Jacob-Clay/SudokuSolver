@@ -82,15 +82,15 @@ class Grid:
 
     n_rows: int
     n_cols: int
-    regions: list[Unit]
-    columns: list[Unit] = field(init=False, default_factory=list[Unit])
-    rows: list[Unit] = field(init=False, default_factory=list[Unit])
-    units: list[Unit] = field(init=False, default_factory=list[Unit])
-    cell_to_peers: dict[Coordinate, set[Coordinate]] = field(
-        init=False, default_factory=dict[Coordinate, set[Coordinate]]
+    regions: tuple[Unit, ...]
+    columns: tuple[Unit, ...] = field(init=False, default_factory=tuple[Unit])
+    rows: tuple[Unit, ...] = field(init=False, default_factory=tuple[Unit])
+    units: tuple[Unit, ...] = field(init=False, default_factory=tuple[Unit])
+    cell_to_peers: frozenset[tuple[Coordinate, frozenset[Coordinate]]] = field(
+        init=False, default_factory=frozenset[tuple[Coordinate, frozenset[Coordinate]]]
     )
-    cell_to_units: dict[Coordinate, list[Unit]] = field(
-        init=False, default_factory=dict[Coordinate, list[Unit]]
+    cell_to_units: frozenset[tuple[Coordinate, tuple[Unit, ...]]] = field(
+        init=False, default_factory=frozenset[tuple[Coordinate, tuple[Unit, ...]]]
     )
 
     def __post_init__(self) -> None:
@@ -157,13 +157,28 @@ class Grid:
                 cell_to_peers[(row, col)].discard((row, col))
 
         # set the items
-        object.__setattr__(self, "columns", cols)
-        object.__setattr__(self, "rows", rows)
-        object.__setattr__(self, "units", units)
-        object.__setattr__(self, "cell_to_units", cell_to_units)
-        object.__setattr__(self, "cell_to_peers", cell_to_peers)
+        object.__setattr__(self, "columns", tuple(cols))
+        object.__setattr__(self, "rows", tuple(rows))
+        object.__setattr__(self, "units", tuple(units))
 
-    def get_units_for_cell(self, row: int, col: int) -> list[Unit]:
+        # for dicts, convert to frozenset of (key, value) pairs
+        object.__setattr__(
+            self,
+            "cell_to_units",
+            frozenset(
+                (coord, tuple(units_list))
+                for coord, units_list in cell_to_units.items()
+            ),
+        )
+        object.__setattr__(
+            self,
+            "cell_to_peers",
+            frozenset(
+                (coord, frozenset(peers)) for coord, peers in cell_to_peers.items()
+            ),
+        )
+
+    def get_units_for_cell(self, row: int, col: int) -> tuple[Unit, ...]:
         """Get all units containing a cell.
 
         Args:
@@ -173,9 +188,13 @@ class Grid:
         Returns:
             A list of the three units (row, column, region) containing the cell.
         """
-        return self.cell_to_units[(row, col)]
+        coord: Coordinate = (row, col)
+        return next(
+            (units for c, units in self.cell_to_units if c == coord),
+            tuple[Unit, ...](),
+        )
 
-    def get_peers_for_cell(self, row: int, col: int) -> set[Coordinate]:
+    def get_peers_for_cell(self, row: int, col: int) -> frozenset[Coordinate]:
         """Get all peer cells (cells in the same unit).
 
         Args:
@@ -186,4 +205,8 @@ class Grid:
             A set of coordinates for all cells that share a unit with the given
             cell, excluding the cell itself.
         """
-        return self.cell_to_peers[(row, col)]
+        coord: Coordinate = (row, col)
+        return next(
+            (peers for c, peers in self.cell_to_peers if c == coord),
+            frozenset[Coordinate](),
+        )

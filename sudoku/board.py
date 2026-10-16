@@ -62,7 +62,7 @@ class Board:
     """
 
     def __init__(
-        self, regions: list[Unit] | None = None, grid: Grid | None = None
+        self, regions: tuple[Unit, ...] | None = None, grid: Grid | None = None
     ) -> None:
         """Initialize a sudoku board.
 
@@ -90,13 +90,15 @@ class Board:
 
             n_rows, n_cols = self._determine_dimensions(regions)
 
-            self.grid = Grid(n_rows=n_rows, n_cols=n_cols, regions=regions)
+            self.grid = Grid(n_rows=n_rows, n_cols=n_cols, regions=tuple(regions))
         elif grid:
             self.grid = grid
             n_rows = grid.n_rows
             n_cols = grid.n_cols
         else:
-            self.grid = Grid(n_rows=9, n_cols=9, regions=self._create_standard_grid())
+            self.grid = Grid(
+                n_rows=9, n_cols=9, regions=tuple(self._create_standard_grid())
+            )
             n_rows = 9
             n_cols = 9
 
@@ -107,7 +109,7 @@ class Board:
                 self.cells[(row, col)] = Cell()
 
     @staticmethod
-    def _determine_dimensions(regions: list[Unit]) -> tuple[int, int]:
+    def _determine_dimensions(regions: tuple[Unit, ...]) -> tuple[int, int]:
         """Determine grid dimensions from regions.
 
         Args:
@@ -443,8 +445,40 @@ class Board:
             s += "\n"
         return s
 
+    @override
+    def __repr__(self) -> str:
+        return f"Board({self.to_string()})"
+
+    @override
+    def __eq__(self, value: object, /) -> bool:
+        if not isinstance(value, Board):
+            return NotImplemented
+        return self.grid == value.grid and self.cells == value.cells
+
+    def to_string(self) -> str:
+        """Export the current board state as a string.
+
+        Creates a string representation of the board in row-major order,
+        with digits 1-9 for given/solved values and '0' for empty cells.
+        Does not preserve information about which cells are given vs. solved,
+        or candidate values. Use from_string() to reimport.
+
+        Returns:
+            A string of n_rows * n_cols characters representing the board.
+        """
+        s = ""
+        for cell in self.cells.values():
+            if cell.value:
+                s += f"{cell.value}"
+            else:
+                s += "0"
+
+        return s
+
     @classmethod
-    def from_string(cls, input_str: str, regions: list[Unit] | None = None) -> Board:
+    def from_string(
+        cls, input_str: str, regions: tuple[Unit, ...] | None = None
+    ) -> Board:
         """Create a board from a string representation.
 
         The input string must be exactly n_rows * n_cols characters long,

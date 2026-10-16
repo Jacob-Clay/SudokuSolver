@@ -45,3 +45,23 @@ def test_every_cell_centre_maps_back(layout):
         for col in range(9):
             x, y, w, h = layout.cell_rect(row, col)
             assert layout.cell_at(x + w / 2, y + h / 2) == (row, col)
+
+
+def test_width(layout):
+    assert layout.width == 50 * 9
+
+
+def test_height(layout):
+    assert layout.height == 50 * 9
+
+
+def test_cell_at_with_zero_cell():
+    layout = GridLayout(left=25, top=25, cell=0, n_rows=9, n_cols=9)
+    assert layout.cell_at(25, 25) is None
+    assert layout.cell_at(100, 100) is None
+
+
+def test_cell_at_with_negative_cell():
+    layout = GridLayout(left=25, top=25, cell=-5, n_rows=9, n_cols=9)
+    assert layout.cell_at(25, 25) is None
+    assert layout.cell_at(100, 100) is None
