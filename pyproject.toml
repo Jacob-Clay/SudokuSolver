@@ -26,7 +26,6 @@ omit = [
   "sudoku/gui/__main__.py",
   "sudoku/gui/board_widget.py",
   "sudoku/gui/main_window.py",
-  "sudoku/gui/model_api.py",
 ]
 
 [dependency-groups]

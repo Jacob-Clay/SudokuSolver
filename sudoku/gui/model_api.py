@@ -74,11 +74,5 @@ def board_from_string(text: str) -> Board:
 
 
 def board_to_string(board: Board) -> str:
-    """Values only, '.' for empty. Replace with your own exporter once you write one."""
-    n_rows, n_cols = grid_size(board)
-    chars = []
-    for row in range(n_rows):
-        for col in range(n_cols):
-            value = get_cell_value(board, (row, col))
-            chars.append("." if value is None else str(value))
-    return "".join(chars)
+    """Values only, '0' for empty."""
+    return board.to_string()
