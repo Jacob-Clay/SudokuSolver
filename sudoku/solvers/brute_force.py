@@ -15,8 +15,8 @@ def solve(board: Board) -> Board | None:
     Returns:
         A new solved Sudoku board if one exists or None if no solution exists.
     """
-    if board.get_conflicts() != set():
-        return
+    if board.get_conflicts():
+        return None
 
     return next(_search(board.copy()), None)
 
@@ -69,7 +69,7 @@ def count_solutions(board: Board, limit: int = 2) -> int:
         ValueError: When limit is less than 1.
     """
     if limit <= 0:
-        raise ValueError("Limit msut be at least 1")
+        raise ValueError("Limit must be at least 1")
 
     if board.get_conflicts() != set():
         return 0

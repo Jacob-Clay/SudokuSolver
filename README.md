@@ -15,6 +15,7 @@ The project is being rewritten. What works today:
 - Givens are protected from editing
 - Conflicting digits in a row, column or box are highlighted
 - Board model with tests, kept separate from the GUI
+- A brute-force solver, along with counting how many solutions a board has
 
 Planned next (see [TODO.md](TODO.md)):
 
