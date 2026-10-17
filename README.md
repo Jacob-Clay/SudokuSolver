@@ -18,10 +18,9 @@ The project is being rewritten. What works today:
 
 Planned next (see [TODO.md](TODO.md)):
 
-1. Brute-force solver (also used to check the strategies)
-2. Human-style strategies from SudokuWiki, starting with singles,
+1. Human-style strategies from SudokuWiki, starting with singles,
    pairs and pointing pairs
-3. Board sizes other than 9×9 (e.g. 6×6) and irregular (jigsaw) regions
+2. Board sizes other than 9×9 (e.g. 6×6) and irregular (jigsaw) regions
 
 ## Requirements
 
@@ -47,18 +46,18 @@ uv run python -m sudoku.gui
 The app opens with an example puzzle. Load your own with **Puzzle → Load from
 string** (`Ctrl+O`).
 
-| Key                          | Action                                   |
-| ---------------------------- | ---------------------------------------- |
-| Click, arrow keys            | Select a cell (arrows wrap around)       |
-| `Tab` / `Shift+Tab`          | Next / previous cell                     |
-| `1`–`9`                      | Enter a digit                            |
-| `Ctrl` + `1`–`9`             | Toggle a candidate (`Cmd` on macOS)      |
-| `Delete`, `Backspace` or `0` | Clear the cell                           |
-| `Esc`                        | Deselect                                 |
-| `Ctrl+O`                     | Load a puzzle from a string              |
-| `Ctrl+Shift+C`               | Copy the board as a string               |
-| `Ctrl+N`                     | New empty board                          |
-| `F11`                        | Toggle full screen                       |
+| Key                          | Action                              |
+| ---------------------------- | ----------------------------------- |
+| Click, arrow keys            | Select a cell (arrows wrap around)  |
+| `Tab` / `Shift+Tab`          | Next / previous cell                |
+| `1`–`9`                      | Enter a digit                       |
+| `Ctrl` + `1`–`9`             | Toggle a candidate (`Cmd` on macOS) |
+| `Delete`, `Backspace` or `0` | Clear the cell                      |
+| `Esc`                        | Deselect                            |
+| `Ctrl+O`                     | Load a puzzle from a string         |
+| `Ctrl+Shift+C`               | Copy the board as a string          |
+| `Ctrl+N`                     | New empty board                     |
+| `F11`                        | Toggle full screen                  |
 
 ### Puzzle strings
 
@@ -93,7 +92,8 @@ coordinate outside the board raises `IndexError`.
 sudoku/
 ├── grid.py        # board geometry: rows, columns, regions, peers
 ├── board.py       # cell state and all operations on it
-└── gui/           # PySide6 interface (the only part that imports Qt)
+├── gui/           # PySide6 interface (the only part that imports Qt)
+└── solvers/       # board solvers both brute force and human like
 tests/             # pytest suite (no Qt needed)
 legacy/            # the original version, kept for reference
 ```

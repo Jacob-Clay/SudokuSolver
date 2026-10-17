@@ -34,6 +34,7 @@ class TestBruteForce:
         assert board.is_solved()
         assert solved_board is not None
         assert solved_board == board
+        assert solved_board is not board
 
         assert brute_force.count_solutions(board) == 1
 

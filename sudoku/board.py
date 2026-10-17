@@ -362,7 +362,7 @@ class Board:
             col: The column index of the cell.
 
         Returns:
-            A set of integers (1-9) representing valid candidates for the cell.
+            A set of integers (1-9) representing valid digits for the cell.
             An empty set if all values are already taken by peers or cell is
             already set.
         """
@@ -373,7 +373,7 @@ class Board:
 
         for peer_coord in self.grid.get_peers_for_cell(row, col):
             cell_value: int | None = self.get_cell_value(*peer_coord)
-            if cell_value:
+            if cell_value is not None:
                 possible_candidates.discard(cell_value)
 
         return frozenset(possible_candidates)

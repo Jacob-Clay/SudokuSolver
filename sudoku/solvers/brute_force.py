@@ -15,18 +15,22 @@ def solve(board: Board) -> Board | None:
     Returns:
         A new solved Sudoku board if one exists or None if no solution exists.
     """
-    return next(_search(board), None)
+    if board.get_conflicts() != set():
+        return
+
+    return next(_search(board.copy()), None)
 
 
 def _search(board: Board) -> Generator[Board]:
-    coord_fewest_digits: Coordinate = _get_cell_with_fewest_possible_digits(board)
-    possible_digits: frozenset[int] = board.get_possible_digits(*coord_fewest_digits)
+    coord_fewest_digits: Coordinate | None = _get_cell_with_fewest_possible_digits(
+        board
+    )
 
-    if board.is_solved():
+    if coord_fewest_digits is None:
         yield board
         return
-    if board.get_conflicts() != set():
-        return
+
+    possible_digits: frozenset[int] = board.get_possible_digits(*coord_fewest_digits)
 
     for digit in possible_digits:
         new_board: Board = board.copy()
@@ -34,21 +38,20 @@ def _search(board: Board) -> Generator[Board]:
         yield from _search(new_board)
 
 
-def _get_cell_with_fewest_possible_digits(board: Board) -> Coordinate:
-    n_digits: int = 1000  # way bigger than any board should ever be
-    cell_with_fewest_possible_digits: Coordinate = (0, 0)
+def _get_cell_with_fewest_possible_digits(board: Board) -> Coordinate | None:
+    best: tuple[int, Coordinate] | None = None
     for row in range(board.grid.n_rows):
         for col in range(board.grid.n_cols):
             if board.get_cell_value(row, col) is not None:
                 continue
-            t_n_digits: int = len(board.get_possible_digits(row, col))
-            if t_n_digits < n_digits:
-                n_digits = t_n_digits
-                cell_with_fewest_possible_digits = (row, col)
-            if n_digits == 1:
-                return cell_with_fewest_possible_digits
+            n_digits: int = len(board.get_possible_digits(row, col))
+            if best is None or n_digits < best[0]:
+                best = (n_digits, (row, col))
+            if n_digits <= 1:
+                return best[1]
 
-    return cell_with_fewest_possible_digits
+    if best is not None:
+        return best[1]
 
 
 def count_solutions(board: Board, limit: int = 2) -> int:
@@ -67,6 +70,9 @@ def count_solutions(board: Board, limit: int = 2) -> int:
     """
     if limit <= 0:
         raise ValueError("Limit msut be at least 1")
+
+    if board.get_conflicts() != set():
+        return 0
 
     n_solutions: int = 0
     for _ in _search(board):
