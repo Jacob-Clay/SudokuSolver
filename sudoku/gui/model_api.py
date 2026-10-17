@@ -8,12 +8,11 @@ Uses from the model:
     Board()
     board.grid.n_rows, board.grid.n_cols, board.grid.regions (units with .coords)
     board.get_cell_value / get_cell_condidates / is_cell_given
-    board.cells[(row, col)]  -> Cell with .value, .candidates, .given
     board.set_cell_value / clear_cell / toggle_cell_candidate  (raise ValueError)
     board.get_conflicts(), board.is_solved(), board.from_string()
 """
 
-from sudoku.board import Board, Cell
+from sudoku.board import Board
 
 type Coordinate = tuple[int, int]
 

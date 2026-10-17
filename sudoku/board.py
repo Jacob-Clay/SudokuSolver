@@ -350,6 +350,48 @@ class Board:
         cell: Cell = self.cells[(row, col)]
         cell.candidates.discard(value)
 
+    def get_possible_digits(self, row: int, col: int) -> frozenset[int]:
+        """Return the set of valid digit values for a cell.
+
+        Determines which numbers (1-9) can be placed in the specified cell by
+        excluding values that already appear in the cell's peers (cells that
+        share a row, column or region).
+
+        Args:
+            row: The row index of the cell.
+            col: The column index of the cell.
+
+        Returns:
+            A set of integers (1-9) representing valid candidates for the cell.
+            An empty set if all values are already taken by peers or cell is
+            already set.
+        """
+        if self.get_cell_value(row, col) is not None:
+            return frozenset()
+
+        possible_candidates: set[int] = {1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+        for peer_coord in self.grid.get_peers_for_cell(row, col):
+            cell_value: int | None = self.get_cell_value(*peer_coord)
+            if cell_value:
+                possible_candidates.discard(cell_value)
+
+        return frozenset(possible_candidates)
+
+    def populate_candidates(self) -> None:
+        """Populate candidate sets for all cells based on current board state.
+
+        Iterates through every cell in the grid and computes the set of valid
+        values (1-9) that could legally occupy that cell, given sudoku
+        constraints.
+
+        Side Effects:
+            Overwrites the `candidates` attribute (a set) of every cell in `self.cells`.
+            Cells are mutated in place; no return value.
+        """
+        for coord, cell in self.cells.items():
+            cell.candidates = set(self.get_possible_digits(*coord))
+
     def set_given(self, row: int, col: int, value: int) -> None:
         """Set a cell as a given (immutable clue) with a value.
 

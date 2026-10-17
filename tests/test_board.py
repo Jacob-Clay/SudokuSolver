@@ -115,6 +115,22 @@ class TestBoard:
         assert board.get_cell_value(0, 0) == 3
         assert 1 not in board.get_cell_candidates(0, 0)
 
+    def test_populate_cell_candidates(self) -> None:
+        board: Board = Board()
+
+        board.populate_candidates()
+        for row in range(board.grid.n_rows):
+            for col in range(board.grid.n_cols):
+                assert board.get_cell_candidates(row, col) == frozenset(
+                    {1, 2, 3, 4, 5, 6, 7, 8, 9}
+                )
+
+        board.set_cell_value(0, 0, 1)
+
+        assert board.get_cell_candidates(0, 1) == frozenset({1, 2, 3, 4, 5, 6, 7, 8, 9})
+        board.populate_candidates()
+        assert board.get_cell_candidates(0, 1) == frozenset({2, 3, 4, 5, 6, 7, 8, 9})
+
     def test_board_copy(self) -> None:
         board1: Board = Board()
 
@@ -264,10 +280,11 @@ class TestBoard:
         candidates: frozenset[int] = board.get_cell_candidates(0, 0)
 
         assert 1 in candidates
-        with pytest.raises(AttributeError):
-            candidates.add(2)
+        assert isinstance(candidates, frozenset)
 
-        assert 2 not in board.get_cell_candidates(0, 0)
+        board.toggle_cell_candidate(0, 0, 2)
+        assert 2 not in candidates
+        assert 2 in board.get_cell_candidates(0, 0)
 
     def test_remove_cell_candidate(self) -> None:
         board: Board = Board()

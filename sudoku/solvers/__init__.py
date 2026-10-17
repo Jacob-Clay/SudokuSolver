@@ -1,0 +1,1 @@
+"""Solvers for created boards."""

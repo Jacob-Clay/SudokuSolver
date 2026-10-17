@@ -17,7 +17,7 @@ convention = "google"
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.14"
-strict = ["sudoku/board.py", "sudoku/grid.py"]
+strict = ["sudoku/board.py", "sudoku/grid.py", "sudoku/solvers/*"]
 
 [tool.coverage.run]
 omit = [
@@ -26,7 +26,13 @@ omit = [
   "sudoku/gui/__main__.py",
   "sudoku/gui/board_widget.py",
   "sudoku/gui/main_window.py",
+  "sudoku/solvers/__init__.py",
 ]
 
 [dependency-groups]
-dev = ["pyright>=1.1.414", "pytest>=9.1.1", "pytest-cov>=7.1.0"]
+dev = [
+  "pyright>=1.1.414",
+  "pytest>=9.1.1",
+  "pytest-cov>=7.1.0",
+  "pytest-timeout>=2.4.0",
+]
