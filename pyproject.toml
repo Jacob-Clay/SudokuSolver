@@ -13,13 +13,14 @@ extend-select = ["D"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.pyright]
+[tool.basedpyright]
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.14"
 strict = ["sudoku/board.py", "sudoku/grid.py", "sudoku/solvers/*"]
 
 [tool.coverage.run]
+source = ["sudoku"]
 omit = [
   "sudoku/__init__.py",
   "sudoku/gui/__init__.py",
@@ -31,7 +32,7 @@ omit = [
 
 [dependency-groups]
 dev = [
-  "pyright>=1.1.414",
+  "basedpyright>=1.40.2",
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
   "pytest-timeout>=2.4.0",
