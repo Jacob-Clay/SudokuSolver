@@ -315,3 +315,91 @@ class TestBoardToString:
         result = api.board_to_string(board)
         assert isinstance(result, str)
         assert len(result) == 81
+
+
+EASY = (
+    "300967001040302080020000070070000090000873000500010003004705100905000207800621004"
+)
+# Solved board with a 2x2 "deadly pattern" removed: exactly two solutions.
+TWO_SOLUTIONS = (
+    "295743861431865900876192543387459216612387495549216738763524189928671354154938600"
+)
+
+
+class TestPopulateCandidates:
+    def test_populate_candidates_fill_empty_cells(self) -> None:
+        board = api.board_from_string(EASY)
+        api.populate_candidates(board)
+        assert api.get_cell_candidates(board, (0, 1)) == board.get_possible_digits(0, 1)
+        assert len(api.get_cell_candidates(board, (0, 1))) > 0
+
+    def test_populate_candidates_leaves_filled_cells_empty(self) -> None:
+        board = api.board_from_string(EASY)
+        api.populate_candidates(board)
+        assert api.get_cell_candidates(board, (0, 0)) == frozenset()
+
+    def test_populate_candidates_replaces_player_candidates(self) -> None:
+        board = api.board_from_string(EASY)
+        api.toggle_candidate(board, (0, 1), 3)  # 3 is already in row 0
+        api.populate_candidates(board)
+        assert 3 not in api.get_cell_candidates(board, (0, 1))
+
+
+class TestSolve:
+    def test_solve_returns_new_solved_board(self) -> None:
+        board = api.board_from_string(EASY)
+        solved = api.solve(board)
+        assert solved is not None
+        assert solved is not board
+        assert api.is_solved(solved)
+        assert api.board_to_string(board) == EASY  # input unchanged
+
+    def test_solve_keeps_givens(self) -> None:
+        board = api.board_from_string(EASY)
+        solved = api.solve(board)
+        assert solved is not None
+        assert api.is_cell_given(solved, (0, 0))
+        assert api.get_cell_value(solved, (0, 0)) == 3
+
+    def test_solve_returns_none_when_player_digit_is_wrong(self) -> None:
+        board = api.board_from_string(EASY)
+        solution = api.solve(board)
+        assert solution is not None
+        correct = api.get_cell_value(solution, (0, 1))
+        assert correct is not None
+        # a digit that causes no conflict but isn't the solution's digit
+        wrong = next(d for d in sorted(board.get_possible_digits(0, 1)) if d != correct)
+        api.place(board, (0, 1), wrong)
+        assert api.conflicts(board) == set()
+        assert api.solve(board) is None
+
+
+class TestHasMultipleSolutions:
+    def test_unique_puzzle(self) -> None:
+        assert not api.has_multiple_solutions(api.board_from_string(EASY))
+
+    def test_two_solutions(self) -> None:
+        assert api.has_multiple_solutions(api.board_from_string(TWO_SOLUTIONS))
+
+    def test_empty_board(self) -> None:
+        assert api.has_multiple_solutions(api.new_board())
+
+
+class TestGivensOnly:
+    def test_givens_only_drops_player_digits(self) -> None:
+        board = api.board_from_string(EASY)
+        api.place(board, (0, 1), 5)
+        result = api.givens_only(board)
+        assert api.get_cell_value(result, (0, 1)) is None
+        assert api.board_to_string(result) == EASY
+
+    def test_givens_only_keeps_given_as_givens(self) -> None:
+        result = api.givens_only(api.board_from_string(EASY))
+        assert api.is_cell_given(result, (0, 0))
+
+    def test_givens_only_shares_layout_and_leaves_input_alone(self) -> None:
+        board = api.board_from_string(EASY)
+        api.place(board, (0, 1), 5)
+        result = api.givens_only(board)
+        assert result.grid is board.grid
+        assert api.get_cell_value(board, (0, 1)) == 5

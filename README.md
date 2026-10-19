@@ -58,6 +58,8 @@ string** (`Ctrl+O`).
 | `Ctrl+O`                     | Load a puzzle from a string         |
 | `Ctrl+Shift+C`               | Copy the board as a string          |
 | `Ctrl+N`                     | New empty board                     |
+| `Ctrl+Shift+F`               | Fill in all candidates              |
+| `Ctrl+Shift+B`               | brute-force solve                   |
 | `F11`                        | Toggle full screen                  |
 
 ### Puzzle strings

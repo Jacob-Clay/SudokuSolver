@@ -10,9 +10,12 @@ Uses from the model:
     board.get_cell_value / get_cell_condidates / is_cell_given
     board.set_cell_value / clear_cell / toggle_cell_candidate  (raise ValueError)
     board.get_conflicts(), board.is_solved(), board.from_string()
+    board.populate_candidates(), board.set_given()
+    brute_force.solve / count_solutions
 """
 
 from sudoku.board import Board
+from sudoku.solvers import brute_force
 
 type Coordinate = tuple[int, int]
 
@@ -75,3 +78,34 @@ def board_from_string(text: str) -> Board:
 def board_to_string(board: Board) -> str:
     """Values only, '0' for empty."""
     return board.to_string()
+
+
+def populate_candidates(board: Board) -> None:
+    """Fill every empty cell's candidates, replacing any the player entered."""
+    board.populate_candidates()
+
+
+def solve(board: Board) -> Board | None:
+    """New board with every empty cell filled, or None if there is no solution.
+
+    Digits the player entered are kept and treated as fixed, so a wrong entry
+    makes the board unsolvable. The given board is not changed.
+    """
+    return brute_force.solve(board)
+
+
+def has_multiple_solutions(board: Board) -> bool:
+    """True if the board can be completed in more than one way."""
+    return brute_force.count_solutions(board, limit=2) > 1
+
+
+def givens_only(board: Board) -> Board:
+    """New board containing only the givens, without the player's digits."""
+    n_rows, n_cols = grid_size(board)
+    result = Board(grid=board.grid)  # same layout, so jigsaw regions survive
+    for row in range(n_rows):
+        for col in range(n_cols):
+            value = board.get_cell_value(row, col)
+            if value is not None and board.is_cell_given(row, col):
+                result.set_given(row, col, value)
+    return result
