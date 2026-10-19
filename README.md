@@ -105,7 +105,7 @@ legacy/            # the original version, kept for reference
 
 ```bash
 uv run python -m pytest   # run the tests
-uv run pyright            # type-check (strict on the model)
+uv run basedpyright       # type-check (strict on the model)
 ```
 
 Code conventions (coordinates, numbering, what belongs in which layer) are in
@@ -117,7 +117,7 @@ Contributions are welcome:
 
 1. Fork the repository
 2. Create a branch: `git checkout -b feature-name`
-3. Make your change, with tests, and check that the tests and pyright pass
+3. Make your change, with tests, and check that the tests and basedpyright pass
 4. Push the branch and open a pull request against `main`
 
 ## Acknowledgements
